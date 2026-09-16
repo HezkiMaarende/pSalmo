@@ -6,7 +6,7 @@ Last updated: 16 September 2026
 | --- | --- | --- |
 | 0. Project foundation | In progress | Typecheck and Android JavaScript export pass; device launch, Hermes build, and CI baseline remain |
 | 1. Data and access | In progress | Schema, RLS hardening, assignment policy, and encrypted native session storage added; multi-user policy tests remain |
-| 2. Weekly service workspace | In progress | Auth, team selection/creation, service list/creation, and read-only detail added; roster, notes, setlist CRUD and atomic reorder remain |
+| 2. Weekly service workspace | In progress | Auth, team/service setup, admin roster/notes/media/setlist create-delete, and atomic setlist reorder added; editing existing entries and device testing remain |
 | 3. Song Bank and Smart Add | Not started | Canonical matching, review/commit flow, provider abstraction, expiring encrypted jobs |
 | 4. Offline and click device | Not started | Upcoming service prefetch, read-only offline mode, 30-minute hardware validation |
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
@@ -23,6 +23,8 @@ Last updated: 16 September 2026
 - [x] Add email sign-in/sign-up and native encrypted session persistence.
 - [x] Add team and service creation/selection, plus read-only roster, setlist, notes, and media display.
 - [x] Apply `202609160002_assignment_permissions.sql` to restrict assignment changes to team admins; SQL Editor reported success.
+- [x] Add admin controls for temporary roster roles, shared notes, media references, and proposed-title setlist items.
+- [x] Add and apply `202609160003_setlist_reorder.sql` for atomic adjacent setlist reordering; rerun Security Advisor (0 errors, 0 warnings).
 - [ ] Install dependencies and run the starter on a device/simulator.
 - [ ] Run cross-team and role-specific policy tests using separate authenticated users.
 - [ ] Settle the remaining open product decisions below before their related features.
@@ -33,6 +35,7 @@ Last updated: 16 September 2026
 - Android JavaScript export passed with `--no-bytecode --max-workers 1`. A normal export reached Hermes bytecode generation but failed with Windows `spawn EPERM`; a native/Hermes build is not yet verified.
 - Web export stopped at `fetch failed` before bundling; no web-bundle result is claimed.
 - No on-device sign-in or service flow has been exercised yet.
+- Workspace mutations are compiled and backed by RLS; they still need an on-device and separate-user exercise.
 
 ## Decisions captured from the design
 

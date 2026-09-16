@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { isConfigured, supabase } from "./src/lib/supabase";
-import { createService, createTeam, getServiceDetail, listServices, listTeams, type Service, type ServiceDetail, type Team } from "./src/lib/services";
+import { addAssignment, addMediaReference, addNote, addSetlistItem, createService, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listTeamMembers, listTeams, moveSetlistItem, type Service, type ServiceDetail, type Team, type TeamMember } from "./src/lib/services";
 import type { ServiceType } from "./src/domain/service";
 
 function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
@@ -27,6 +27,7 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
   const [team, setTeam] = useState<Team | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [service, setService] = useState<Service | null>(null);
   const [detail, setDetail] = useState<ServiceDetail | null>(null);
@@ -34,6 +35,13 @@ export default function App() {
   const [newServiceTitle, setNewServiceTitle] = useState("");
   const [newServiceDate, setNewServiceDate] = useState("");
   const [newServiceType, setNewServiceType] = useState<ServiceType>("ir_1_2");
+  const [assignmentRole, setAssignmentRole] = useState("");
+  const [assignmentName, setAssignmentName] = useState("");
+  const [assignmentMemberId, setAssignmentMemberId] = useState<string | null>(null);
+  const [noteBody, setNoteBody] = useState("");
+  const [mediaLabel, setMediaLabel] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [songTitle, setSongTitle] = useState("");
 
   async function run(action: () => Promise<void>) {
     setBusy(true); setError("");
@@ -54,7 +62,13 @@ export default function App() {
   }, []);
 
   useEffect(() => { if (session) void run(async () => setTeams(await listTeams())); }, [session?.user.id]);
-  useEffect(() => { if (team) void run(async () => setServices(await listServices(team.id))); }, [team?.id]);
+  useEffect(() => {
+    if (!team) { setTeamMembers([]); return; }
+    void run(async () => {
+      const [loadedServices, loadedMembers] = await Promise.all([listServices(team.id), listTeamMembers(team.id)]);
+      setServices(loadedServices); setTeamMembers(loadedMembers);
+    });
+  }, [team?.id]);
   useEffect(() => {
     if (!service) { setDetail(null); return; }
     void run(async () => setDetail(await getServiceDetail(service)));
@@ -91,6 +105,48 @@ export default function App() {
     });
   }
 
+  const canManageService = Boolean(team && team.role !== "member");
+
+  async function refreshDetail() {
+    if (!service) return;
+    setDetail(await getServiceDetail(service));
+  }
+
+  function changeWorkspace(action: () => Promise<void>) {
+    void run(async () => { await action(); await refreshDetail(); });
+  }
+
+  function saveAssignment() {
+    changeWorkspace(async () => {
+      if (!service || !assignmentRole.trim()) throw new Error("Enter a temporary role, such as WL or bass.");
+      const selected = teamMembers.find((member) => member.id === assignmentMemberId);
+      await addAssignment(service.id, assignmentRole, selected?.displayName || assignmentName, selected?.id);
+      setAssignmentRole(""); setAssignmentName(""); setAssignmentMemberId(null);
+    });
+  }
+
+  function saveNote() {
+    changeWorkspace(async () => {
+      if (!service || !session || !noteBody.trim()) throw new Error("Enter a shared note.");
+      await addNote(service.id, session.user.id, noteBody); setNoteBody("");
+    });
+  }
+
+  function saveMedia() {
+    changeWorkspace(async () => {
+      if (!service || !mediaLabel.trim() || !mediaUrl.trim()) throw new Error("Enter both a label and a URL.");
+      try { new URL(mediaUrl); } catch { throw new Error("Enter a valid absolute URL."); }
+      await addMediaReference(service.id, mediaLabel, mediaUrl); setMediaLabel(""); setMediaUrl("");
+    });
+  }
+
+  function saveSong() {
+    changeWorkspace(async () => {
+      if (!service || !songTitle.trim()) throw new Error("Enter a song title.");
+      await addSetlistItem(service, songTitle); setSongTitle("");
+    });
+  }
+
   return <SafeAreaView style={styles.safe}><StatusBar style="light" /><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <Text style={styles.brand}>pSalmo</Text><Text style={styles.title}>Sunday Service</Text>
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -104,10 +160,16 @@ export default function App() {
         {service && detail ? <>
           <Button label="All services" onPress={() => setService(null)} />
           <Text style={styles.heading}>{service.title}</Text><Text style={styles.meta}>{new Date(service.service_date).toLocaleDateString("id-ID")} · {service.service_type === "ir_3" ? "Ibadah Raya 3" : "Ibadah Raya 1 & 2"} · {service.status}</Text>
-          <Section title="Roster">{detail.assignments.length ? detail.assignments.map((entry) => <Text key={entry.id} style={styles.row}>{entry.role_name}: {entry.display_name || "Assigned member"}</Text>) : <Text style={styles.muted}>No assignments yet.</Text>}</Section>
-          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <Text key={entry.id} style={styles.row}>{entry.position}. {entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>) : <Text style={styles.muted}>No songs yet.</Text>}</Section>
-          <Section title="Shared notes">{detail.notes.length ? detail.notes.map((entry) => <Text key={entry.id} style={styles.row}>{entry.body}</Text>) : <Text style={styles.muted}>No notes yet.</Text>}</Section>
-          <Section title="Media references">{detail.media.length ? detail.media.map((entry) => <Text key={entry.id} style={styles.row}>{entry.label}: {entry.url}</Text>) : <Text style={styles.muted}>No references yet.</Text>}</Section>
+          <Section title="Roster">{detail.assignments.length ? detail.assignments.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.role_name}: {entry.display_name || "Assigned member"}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteAssignment(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No assignments yet.</Text>}
+            {canManageService ? <><Field label="Temporary role" value={assignmentRole} onChangeText={setAssignmentRole} /><Field label="Name (for a guest or manual entry)" value={assignmentName} onChangeText={setAssignmentName} />
+              {teamMembers.length ? <View style={styles.memberChoices}>{teamMembers.map((member) => <Pressable key={member.id} accessibilityRole="button" onPress={() => { setAssignmentMemberId(member.id); setAssignmentName(""); }} style={[styles.choice, assignmentMemberId === member.id && styles.choiceSelected]}><Text style={styles.choiceText}>{member.displayName}</Text></Pressable>)}</View> : null}
+              <Button label="Add assignment" onPress={saveAssignment} disabled={busy} /></> : null}</Section>
+          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canManageService ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
+            {canManageService ? <><Field label="Song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add song" onPress={saveSong} disabled={busy} /></> : null}</Section>
+          <Section title="Shared notes">{detail.notes.length ? detail.notes.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.body}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteNote(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No notes yet.</Text>}
+            {canManageService ? <><Field label="New shared note" value={noteBody} onChangeText={setNoteBody} /><Button label="Add note" onPress={saveNote} disabled={busy} /></> : null}</Section>
+          <Section title="Media references">{detail.media.length ? detail.media.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.label}: {entry.url}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteMediaReference(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No references yet.</Text>}
+            {canManageService ? <><Field label="Reference label" value={mediaLabel} onChangeText={setMediaLabel} /><Field label="Reference URL" value={mediaUrl} onChangeText={setMediaUrl} /><Button label="Add reference" onPress={saveMedia} disabled={busy} /></> : null}</Section>
         </> : team ? <>
           <Button label="Teams" onPress={() => { setTeam(null); setService(null); }} />
           <Text style={styles.heading}>{team.name}</Text><Text style={styles.meta}>Permission role: {team.role}</Text>
@@ -133,4 +195,6 @@ const styles = StyleSheet.create({
   input: { backgroundColor: "#374151", borderRadius: 8, color: "#FFFFFF", padding: 12, fontSize: 16 },
   button: { backgroundColor: "#047857", borderRadius: 10, padding: 14, alignItems: "center" }, buttonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
   disabled: { opacity: 0.45 }, topline: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
+  actionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }, controls: { flexDirection: "row", gap: 12, alignItems: "center" },
+  danger: { color: "#FCA5A5", fontSize: 14, fontWeight: "600" }, memberChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { borderWidth: 1, borderColor: "#6B7280", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 }, choiceSelected: { borderColor: "#A7F3D0", backgroundColor: "#065F46" }, choiceText: { color: "#F9FAFB", fontSize: 14 },
 });

@@ -5,8 +5,8 @@ Last updated: 16 September 2026
 | Milestone | Status | Exit criteria |
 | --- | --- | --- |
 | 0. Project foundation | In progress | Typecheck and Android JavaScript export pass; device launch, Hermes build, and CI baseline remain |
-| 1. Data and access | In progress | Schema, RLS hardening, assignment policy, and encrypted native session storage added; multi-user policy tests remain |
-| 2. Weekly service workspace | In progress | Auth, team/service setup, admin roster/notes/media/setlist editing, and atomic setlist reorder added; lifecycle, medleys, and device testing remain |
+| 1. Data and access | In progress | Schema, RLS hardening, encrypted native session storage, one-time revocable invites, and guarded membership RPCs added; multi-user policy tests remain |
+| 2. Weekly service workspace | In progress | Auth, team/service setup, publication lifecycle, admin roster/notes/media controls, WL/MD setlist editing, and atomic setlist reorder added; medleys and device testing remain |
 | 3. Song Bank and Smart Add | In progress | Canonical Song Bank creation and setlist selection added; matching, review/commit, provider abstraction, and expiring encrypted jobs remain |
 | 4. Offline and click device | Not started | Upcoming service prefetch, read-only offline mode, 30-minute hardware validation |
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
@@ -29,6 +29,8 @@ Last updated: 16 September 2026
 - [x] Add a team-scoped Song Bank with canonical title, artist, default key, and BPM, plus canonical-song selection for service setlists.
 - [x] Add service-specific setlist arrangement editing for key, BPM, time signature, structure, lyrics/chords, arrangement link, and notes.
 - [x] Add bulk service-only setlist proposals with blank-line and duplicate filtering.
+- [x] Add and apply expiring single-use invites, invite revocation, guarded membership role/removal RPCs, and approved-service visibility rules.
+- [x] Distinguish PIC/admin workspace management from temporary WL/MD setlist editing in the app UI and RLS policies.
 - [ ] Install dependencies and run the starter on a device/simulator.
 - [ ] Run cross-team and role-specific policy tests using separate authenticated users.
 - [ ] Settle the remaining open product decisions below before their related features.
@@ -41,6 +43,7 @@ Last updated: 16 September 2026
 - No on-device sign-in or service flow has been exercised yet.
 - Workspace mutations are compiled and backed by RLS; they still need an on-device and separate-user exercise.
 - Song Bank changes passed TypeScript and Android JavaScript-export checks; a real team/service exercise remains.
+- Access and publication changes passed TypeScript and Android JavaScript-export checks. The Supabase Security Advisor confirms the access RPCs are not anonymous; its signed-in `SECURITY DEFINER` notices are expected because the guarded RPCs are the only supported membership-write path.
 
 ## Decisions captured from the design
 
@@ -54,7 +57,6 @@ Last updated: 16 September 2026
 
 ## Decisions needed before implementation
 
-- [ ] Confirm whether members can edit anything, or are strictly read-only (current UI treats members as read-only).
 - [ ] Confirm the church's CCLI licence status and required per-song attribution fields.
 - [ ] Choose and benchmark the Smart Add provider using de-identified Indonesian fixture messages.
 - [ ] Define Service lifecycle: draft, approved, archived/cancelled.
@@ -63,6 +65,7 @@ Last updated: 16 September 2026
 ## Key acceptance gates
 
 - Cross-team reads and writes are blocked by tested RLS policies.
+- Members cannot open draft services; assigned WL/MD users can edit only their service setlist, while PIC/admin retains roster and publication control.
 - Smart Add preview writes no setlist content; only reviewed, confirmed candidates commit.
 - Upcoming service content opens read-only without a network connection.
 - Click device runs for 30 minutes through wired/USB output with typical click-to-click error <=5 ms and cumulative drift <=20 ms against the audio clock, including lock/background and audio-route interruption behaviour.

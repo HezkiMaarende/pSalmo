@@ -10,6 +10,15 @@ export interface Team {
 export interface TeamMember {
   id: string;
   displayName: string;
+  role: MembershipRole;
+}
+
+export interface TeamInvite {
+  id: string;
+  role: MembershipRole;
+  expiresAt: string;
+  revokedAt: string | null;
+  usedAt: string | null;
 }
 
 export interface Song {
@@ -32,7 +41,7 @@ export interface Service {
 
 export interface ServiceDetail {
   service: Service;
-  assignments: Array<{ id: string; role_name: string; display_name: string | null; position: number }>;
+  assignments: Array<{ id: string; user_id: string | null; role_name: string; display_name: string | null; position: number }>;
   notes: Array<{ id: string; body: string }>;
   media: Array<{ id: string; label: string; url: string }>;
   items: Array<{
@@ -89,15 +98,67 @@ export async function listServices(teamId: string): Promise<Service[]> {
 
 export async function listTeamMembers(teamId: string): Promise<TeamMember[]> {
   const memberships = unwrap(await supabase.from("team_memberships")
-    .select("user_id").eq("team_id", teamId));
+    .select("user_id, role").eq("team_id", teamId));
   const memberIds = memberships.map((member) => member.user_id);
   if (!memberIds.length) return [];
   const profiles = unwrap(await supabase.from("profiles")
     .select("id, display_name").in("id", memberIds));
-  return memberIds.flatMap((id) => {
+  return memberships.flatMap((membership) => {
+    const id = membership.user_id;
     const profile = profiles.find((candidate) => candidate.id === id);
-    return profile ? [{ id, displayName: profile.display_name || "Team member" }] : [];
+    return profile ? [{ id, displayName: profile.display_name || "Team member", role: membership.role as MembershipRole }] : [];
   });
+}
+
+export async function listTeamInvites(teamId: string): Promise<TeamInvite[]> {
+  return unwrap(await supabase.from("invites")
+    .select("id, role, expires_at, revoked_at, used_at").eq("team_id", teamId).order("created_at", { ascending: false }))
+    .map((invite) => ({
+      id: invite.id,
+      role: invite.role as MembershipRole,
+      expiresAt: invite.expires_at,
+      revokedAt: invite.revoked_at,
+      usedAt: invite.used_at,
+    }));
+}
+
+export async function createTeamInvite(teamId: string, role: MembershipRole, validForHours: number): Promise<{ token: string; expiresAt: string; role: MembershipRole }> {
+  if (!Number.isInteger(validForHours) || validForHours < 1 || validForHours > 24 * 30) {
+    throw new Error("Invite expiry must be a whole number between 1 and 720 hours.");
+  }
+  if (role === "owner") throw new Error("An invite cannot grant owner access.");
+  const result = await supabase.rpc("create_team_invite", {
+    target_team_id: teamId, target_role: role, valid_for_hours: validForHours,
+  }).single();
+  if (result.error) throw new Error(result.error.message);
+  const invite = result.data as { token: string; expires_at: string; role: MembershipRole } | null;
+  if (!invite) throw new Error("Invite creation returned no token.");
+  return { token: invite.token, expiresAt: invite.expires_at, role: invite.role };
+}
+
+export async function acceptTeamInvite(token: string): Promise<Team> {
+  if (!token.trim()) throw new Error("Enter an invitation code.");
+  const result = await supabase.rpc("accept_team_invite", { invite_token: token.trim() }).single();
+  if (result.error) throw new Error(result.error.message);
+  const joined = result.data as { team_id: string; team_name: string; role: MembershipRole } | null;
+  if (!joined) throw new Error("Invitation acceptance returned no team.");
+  return { id: joined.team_id, name: joined.team_name, role: joined.role };
+}
+
+export async function setTeamMemberRole(teamId: string, userId: string, role: MembershipRole): Promise<void> {
+  if (role === "owner") throw new Error("Owner access cannot be assigned here.");
+  const result = await supabase.rpc("set_team_member_role", { target_team_id: teamId, target_user_id: userId, new_role: role });
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function removeTeamMember(teamId: string, userId: string): Promise<void> {
+  const result = await supabase.rpc("remove_team_member", { target_team_id: teamId, target_user_id: userId });
+  if (result.error) throw new Error(result.error.message);
+}
+
+export async function revokeTeamInvite(inviteId: string): Promise<void> {
+  const result = await supabase.rpc("revoke_team_invite", { target_invite_id: inviteId });
+  if (result.error) throw new Error(result.error.message);
 }
 
 export async function listSongs(teamId: string): Promise<Song[]> {
@@ -131,9 +192,14 @@ export async function createService(
   }).select("id, team_id, title, service_type, service_date, status").single()) as Service;
 }
 
+export async function updateServiceStatus(serviceId: string, status: ServiceStatus): Promise<Service> {
+  return unwrap(await supabase.from("services").update({ status }).eq("id", serviceId)
+    .select("id, team_id, title, service_type, service_date, status").single()) as Service;
+}
+
 export async function getServiceDetail(service: Service): Promise<ServiceDetail> {
   const [assignmentsResult, notesResult, mediaResult, setlistResult] = await Promise.all([
-    supabase.from("service_assignments").select("id, role_name, display_name, position")
+    supabase.from("service_assignments").select("id, user_id, role_name, display_name, position")
       .eq("service_id", service.id).order("position"),
     supabase.from("service_notes").select("id, body").eq("service_id", service.id).order("created_at"),
     supabase.from("media_references").select("id, label, url").eq("service_id", service.id).order("position"),

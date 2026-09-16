@@ -202,13 +202,27 @@ export async function deleteMediaReference(id: string): Promise<void> {
 }
 
 export async function addSetlistItem(service: Service, title: string): Promise<void> {
+  await bulkAddSetlistItems(service, [title]);
+}
+
+export async function bulkAddSetlistItems(service: Service, rawTitles: string[]): Promise<number> {
+  const seen = new Set<string>();
+  const titles = rawTitles.map((title) => title.replace(/\s+/g, " ").trim()).filter((title) => {
+    const key = title.toLocaleLowerCase();
+    if (!title || seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  if (!titles.length) throw new Error("Enter at least one song title.");
+  if (titles.length > 50) throw new Error("Add no more than 50 songs at once.");
   const setlistId = await ensureSetlist(service);
   const existing = unwrap(await supabase.from("setlist_items").select("position").eq("setlist_id", setlistId)
     .order("position", { ascending: false }).limit(1));
-  const result = await supabase.from("setlist_items").insert({
-    setlist_id: setlistId, proposed_title: title.trim(), position: (existing[0]?.position ?? -1) + 1,
-  });
+  const firstPosition = (existing[0]?.position ?? -1) + 1;
+  const result = await supabase.from("setlist_items").insert(titles.map((title, index) => ({
+    setlist_id: setlistId, proposed_title: title, position: firstPosition + index,
+  })));
   if (result.error) throw new Error(result.error.message);
+  return titles.length;
 }
 
 async function ensureSetlist(service: Service): Promise<string> {

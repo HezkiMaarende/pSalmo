@@ -28,6 +28,7 @@ Last updated: 16 September 2026
 - [x] Fix first-team creation under RLS with the `create_team` RPC; verified as the signed-in test user in a rolled-back transaction.
 - [x] Add a team-scoped Song Bank with canonical title, artist, default key, and BPM, plus canonical-song selection for service setlists.
 - [x] Add service-specific setlist arrangement editing for key, BPM, time signature, structure, lyrics/chords, arrangement link, and notes.
+- [x] Add bulk service-only setlist proposals with blank-line and duplicate filtering.
 - [ ] Install dependencies and run the starter on a device/simulator.
 - [ ] Run cross-team and role-specific policy tests using separate authenticated users.
 - [ ] Settle the remaining open product decisions below before their related features.

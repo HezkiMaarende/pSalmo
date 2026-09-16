@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { isConfigured, supabase } from "./src/lib/supabase";
-import { addAssignment, addMediaReference, addNote, addSetlistItem, addSongToSetlist, createService, createSong, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listSongs, listTeamMembers, listTeams, moveSetlistItem, updateSetlistArrangement, type Service, type ServiceDetail, type Song, type Team, type TeamMember } from "./src/lib/services";
+import { addAssignment, addMediaReference, addNote, addSetlistItem, addSongToSetlist, bulkAddSetlistItems, createService, createSong, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listSongs, listTeamMembers, listTeams, moveSetlistItem, updateSetlistArrangement, type Service, type ServiceDetail, type Song, type Team, type TeamMember } from "./src/lib/services";
 import type { ServiceType, SongStructureSection } from "./src/domain/service";
 
 function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
@@ -43,6 +43,7 @@ export default function App() {
   const [mediaLabel, setMediaLabel] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [songTitle, setSongTitle] = useState("");
+  const [bulkSongTitles, setBulkSongTitles] = useState("");
   const [newSongTitle, setNewSongTitle] = useState("");
   const [newSongArtist, setNewSongArtist] = useState("");
   const [newSongKey, setNewSongKey] = useState("");
@@ -160,6 +161,14 @@ export default function App() {
     });
   }
 
+  function saveBulkSongs() {
+    changeWorkspace(async () => {
+      if (!service) return;
+      await bulkAddSetlistItems(service, bulkSongTitles.split("\n"));
+      setBulkSongTitles("");
+    });
+  }
+
   function saveToSongBank() {
     void run(async () => {
       if (!session || !team || !newSongTitle.trim()) throw new Error("Enter a canonical song title.");
@@ -219,7 +228,7 @@ export default function App() {
           <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.itemBlock}><View style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.song_title || entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canManageService ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => editArrangement(entry)}><Text style={styles.link}>Edit</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>
               {entry.time_signature || entry.arrangement_url || entry.structure.length || entry.notes ? <Text style={styles.meta}>{entry.time_signature ? `${entry.time_signature} · ` : ""}{entry.structure.length ? `${entry.structure.map((section) => `${section.section}${section.bars === null ? "" : ` (${section.bars})`}`).join(", ")} · ` : ""}{entry.arrangement_url ? "Arrangement linked · " : ""}{entry.notes || ""}</Text> : null}
               {editingItemId === entry.id ? <View style={styles.editor}><Field label="Service key" value={arrangementKey} onChangeText={setArrangementKey} /><Field label="Service BPM" value={arrangementBpm} onChangeText={setArrangementBpm} /><Field label="Time signature" value={arrangementTimeSignature} onChangeText={setArrangementTimeSignature} /><Field label="Structure (one per line: Verse 1 | 16)" value={arrangementStructure} onChangeText={setArrangementStructure} multiline /><Field label="Lyrics or chords" value={arrangementLyrics} onChangeText={setArrangementLyrics} multiline /><Field label="Arrangement URL" value={arrangementUrl} onChangeText={setArrangementUrl} /><Field label="Service notes" value={arrangementNotes} onChangeText={setArrangementNotes} multiline /><Button label="Save arrangement" onPress={saveArrangement} disabled={busy} /><Pressable accessibilityRole="button" onPress={() => setEditingItemId(null)}><Text style={styles.link}>Cancel editing</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
-            {canManageService ? <><Field label="Proposed song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add proposal" onPress={saveSong} disabled={busy} />
+            {canManageService ? <><Field label="Proposed song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add proposal" onPress={saveSong} disabled={busy} /><Field label="Bulk proposals (one title per line)" value={bulkSongTitles} onChangeText={setBulkSongTitles} multiline /><Button label="Add proposals in bulk" onPress={saveBulkSongs} disabled={busy} />
               {songs.length ? <View style={styles.songChoices}>{songs.map((song) => <Pressable key={song.id} accessibilityRole="button" onPress={() => changeWorkspace(() => addSongToSetlist(service, song))} style={styles.choice}><Text style={styles.choiceText}>+ {song.title}{song.artist ? ` · ${song.artist}` : ""}</Text></Pressable>)}</View> : <Text style={styles.muted}>Add canonical songs in the Song Bank below, then select one here.</Text>}</> : null}</Section>
           <Section title="Shared notes">{detail.notes.length ? detail.notes.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.body}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteNote(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No notes yet.</Text>}
             {canManageService ? <><Field label="New shared note" value={noteBody} onChangeText={setNoteBody} /><Button label="Add note" onPress={saveNote} disabled={busy} /></> : null}</Section>

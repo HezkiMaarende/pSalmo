@@ -55,9 +55,11 @@ export async function listTeams(): Promise<Team[]> {
   });
 }
 
-export async function createTeam(name: string, userId: string): Promise<Team> {
-  const result = await supabase.from("teams")
-    .insert({ name: name.trim(), created_by: userId }).select("id, name").single();
+export async function createTeam(name: string): Promise<Team> {
+  // An INSERT ... RETURNING issued directly through PostgREST evaluates the
+  // team's SELECT policy before the after-insert owner-membership trigger runs.
+  // This RPC returns only after that trigger has completed.
+  const result = await supabase.rpc("create_team", { team_name: name.trim() }).single();
   if (result.error) throw new Error(result.error.message);
   const row = result.data as { id: string; name: string } | null;
   if (!row) throw new Error("Team creation returned no data.");

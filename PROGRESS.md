@@ -25,6 +25,7 @@ Last updated: 16 September 2026
 - [x] Apply `202609160002_assignment_permissions.sql` to restrict assignment changes to team admins; SQL Editor reported success.
 - [x] Add admin controls for temporary roster roles, shared notes, media references, and proposed-title setlist items.
 - [x] Add and apply `202609160003_setlist_reorder.sql` for atomic adjacent setlist reordering; rerun Security Advisor (0 errors, 0 warnings).
+- [x] Fix first-team creation under RLS with the `create_team` RPC; verified as the signed-in test user in a rolled-back transaction.
 - [ ] Install dependencies and run the starter on a device/simulator.
 - [ ] Run cross-team and role-specific policy tests using separate authenticated users.
 - [ ] Settle the remaining open product decisions below before their related features.

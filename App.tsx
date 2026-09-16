@@ -87,7 +87,7 @@ export default function App() {
   function addTeam() {
     void run(async () => {
       if (!session || !newTeamName.trim()) throw new Error("Enter a team name.");
-      const created = await createTeam(newTeamName, session.user.id);
+      const created = await createTeam(newTeamName);
       setTeams((current) => [...current, created]); setTeam(created); setNewTeamName("");
     });
   }

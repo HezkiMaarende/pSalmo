@@ -8,3 +8,5 @@ dist/
 .test-build/
 android/
 ios/
+.gradle-native/
+artifacts/

@@ -20,6 +20,20 @@ Last updated: 16 September 2026
 
 ### Latihan / native audio spike — 16 September
 
+#### Move from Expo Go to native Android
+
+- [x] User confirms their test is in Expo Go and Start is greyed out. This is the native-module capability gate, not an audible-playback result. Clarify the disabled-Start explanation.
+- [x] Install SDK54-compatible `expo-dev-client`6.0.21 and `expo-system-ui`6.0.9. Generate the native Android project with Hermes and New Architecture enabled; keep generated folders and artifacts ignored.
+- [x] Add explicit `start:dev`, `start:go`, `generate:android` and guarded `build:android` commands. The Windows script uses a short cache, isolated SDK preferences, in-process Kotlin compilation, explicit-device installation and USB forwarding; preserve existing account/ADB identities.
+- [x] Add an idempotent Windows config-plugin override for the audio dependency's Bash downloader. Git Bash fails at signal-pipe creation here; PowerShell5's download also fails TLS. The Windows wrapper uses Node's verified HTTPS, the installed dependency's same official release tag and only Android archives; no audio-engine patch or TLS verification bypass. Download/extract `rn-audio-libs`v3.1.0 Android archive succeeds (SHA256 `5f6d01fc82cb736f00485f40d78735414494096a3a14be616c17666babbc046a`).
+- [x] Connect and authorize the user's Samsung SM-A346E (Galaxy A34), Android16, arm64-v8a. No Expo Go tokens are copied into the new app.
+- [x] Install missing NDK27.1.12297006, Android Build Tools36.0.0, Platform36 and CMake3.22.1 using existing accepted SDK licences. Config introspection confirms Hermes, New Architecture and FFmpeg-disabled flags. Audio API's Kotlin/Java compilation succeeds; C++/APK/launch gates are still open.
+- [x] Add two Windows build-plugin tests (preservation/idempotency and unsupported-language rejection); total suite now14 tests. Node download script and both PowerShell scripts parse/check successfully.
+- [x] Typecheck and all14 tests pass after the native-tooling changes. Android JavaScript export passes after dependency changes (994 modules,1.96MB). Script parses without PowerShell syntax errors.
+- [ ] Complete native compilation and install the development APK. Short Gradle cache and isolated `ANDROID_USER_HOME` resolve earlier cache/SDK-discovery failures. The next build completes Java/Kotlin compilation but stalls in CMake's compiler-ABI check. A separate one-command Ninja task (`node --version`) stalls too with both SDK Ninja1.10.2 and official Ninja1.13.2; this points to the restricted Windows runner, not an app-specific C++ failure. Stop only this attempt's processes and preserve SDK/downloads/build caches. The later daemon-disappeared error is from deliberately stopping the stalled build, not evidence of a spontaneous crash. No APK, installation, native/Hermes runtime or sound success is claimed. Next action: user runs the guarded build script in their own PowerShell window, reusing the existing short cache.
+- [ ] Launch the installed app through Metro, sign in, and exercise audible Start/Stop/Next. APK existence alone does not verify playback, timing or route safety.
+- [ ] Publish the native-build tooling and verified outcome to GitHub.
+
 - [x] Add a fresh-RLS-loaded Latihan route from Ibadah. Play has song information, beat indicators, saved notes/structure, Start/Stop and non-autostarting Next; Edit is available only to authorized service editors.
 - [x] Edit/tap BPM, birama and notes with guarded save and unsaved-change confirmation before song/mode switching. Updates preserve key, lyrics, structure, references and canonical Song Bank. No schema migration is required; existing arrangement columns and tested RLS apply.
 - [x] Pin `react-native-audio-api` 0.12.2 (official compatibility table supports RN0.81); gate/lazily load native playback so Expo Go remains usable for settings/notes with Start disabled and a clear development-build explanation.

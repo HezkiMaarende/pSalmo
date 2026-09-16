@@ -14,7 +14,8 @@
           "androidPermissions": [],
           "disableFFmpeg": true
         }
-      ]
+      ],
+      "./plugins/withWindowsAudioBuild"
     ],
     "android": {
       "package": "com.paw.psalmo",

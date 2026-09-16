@@ -14,7 +14,7 @@ import type { PlaybackRun } from "../domain/playback";
 export const nativeClickAvailable =
   Platform.OS !== "web" && !!TurboModuleRegistry.get("AudioAPIModule");
 export const nativeClickNotice =
-  "Audio native memerlukan development build pSalmo, bukan Expo Go. Mode Edit dan catatan tetap dapat digunakan.";
+  "Start dinonaktifkan karena audio native belum tersedia dalam versi ini (misalnya Expo Go). Buka aplikasi pSalmo development yang terpasang, bukan Expo Go. Mode Edit dan catatan tetap dapat digunakan.";
 
 export async function createClickRun(
   settings: ClickSettings,

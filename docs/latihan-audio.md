@@ -31,10 +31,21 @@ With Node24, Android SDK and supported JDK installed:
 
 ```sh
 npm ci
-npx expo run:android
+npm run build:android
+# Or compile and install onto an explicitly selected authorized USB device:
+# npm run build:android -- -Install -DeviceId <serial-from-adb-devices>
+npm run start:dev
 ```
 
-This generates the native Android project and installs a debug native build on a connected device/emulator, including the audio module. Use an authorized device; it is not an Expo Go session. For subsequent launches use `npx expo start --dev-client` and the installed native app. An iOS build requires a Mac/Xcode (`npx expo run:ios`). No paid cloud builds or store uploads are configured.
+On Windows, `scripts/build-android.ps1` generates the Android project without deleting existing folders (`npm run generate:android`), compiles an arm64 debug development client with Hermes/New Architecture and the audio module, copies its APK into ignored `artifacts/`, and prints its SHA256. Pass another supported `-Architecture` for another device/emulator. It uses a short Gradle cache under TEMP, an isolated SDK preferences/cache directory through [ANDROID_USER_HOME](https://developer.android.com/tools/variables), and in-process Kotlin compilation to avoid restricted daemon-cache writes. Existing USB authorization is retained when installing. Missing SDK/NDK components may download into the configured SDK; SDK licences must already be accepted.
+
+`plugins/withWindowsAudioBuild.js` replaces only the audio dependency's Unix-shell archive-download task on Windows. The app-owned PowerShell/Node downloader uses the same official `rn-audio-libs` release tag read from the installed package, downloads only `android.zip` over verified HTTPS, prints the archive SHA256 and marks success only after extraction. FFmpeg stays disabled; no iOS/macOS archives or Unix symlink cleanup are needed. The audio engine is not patched. Other platforms retain the upstream downloader.
+
+`-Install -DeviceId` installs only on the selected authorized device and forwards Metro's port8081 over USB (override with `-MetroPort 8082`). The installed **pSalmo** app is separate from Expo Go: sign in again with the same account. There is no token copying or new account requirement. The development APK needs a running Metro server; it is not a standalone offline/release APK. If port8081 belongs to another server, build/install with `-MetroPort 8082`, use `npm run start:dev -- --localhost --port 8082`, then open `http://127.0.0.1:8082` from the development launcher. Do not start another server on a port already serving this project.
+
+The 16 September local attempt completes Java/Kotlin compilation but stalls at CMake's compiler-ABI check. A minimal independent Ninja task also stalls with both SDK Ninja1.10.2 and official Ninja1.13.2; this indicates a restricted-runner issue, not a proven C++ source error. No APK or audio success is recorded. Run the script in your own PowerShell window to continue, passing `-GradleCache` with the existing cache path to reuse downloads and compiled modules. Do not disable sandbox/TLS protections or patch the audio engine to mask this stall.
+
+`npm run android` (`expo run:android`) is the standard alternative local build/install command. Use `npm run start:go` only for settings/UI checks without native audio. An iOS build requires a Mac/Xcode (`npm run ios`). No paid cloud builds or store uploads are configured. A development build is the [Expo-supported route for custom native libraries](https://docs.expo.dev/develop/development-builds/introduction/).
 
 - [ ] Launch native/Hermes, sign in and start a configured setlist song. Record phone model, OS, runtime, sample rate and Start latency/memory.
 - [ ] Verify first-beat accent, 3/4, 4/4, 6/8, extreme supported BPM, last-song behavior and no edit widgets in Play.

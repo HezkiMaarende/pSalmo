@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "pSalmo",
+    "slug": "psalmo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [],
+    "android": { "package": "com.paw.psalmo" },
+    "ios": { "bundleIdentifier": "com.paw.psalmo" }
+  }
+}

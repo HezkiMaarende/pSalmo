@@ -1,6 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { gcm } from "@noble/ciphers/aes.js";
-import { bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from "@noble/ciphers/utils.js";
+import {
+  bytesToHex,
+  bytesToUtf8,
+  hexToBytes,
+  utf8ToBytes,
+} from "@noble/ciphers/utils.js";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 
@@ -32,7 +37,11 @@ export const secureAuthStorage = {
     try {
       const [nonce, ciphertext] = payload.split(":");
       if (!nonce || !ciphertext) throw new Error("Incomplete session payload");
-      return bytesToUtf8(gcm(hexToBytes(secret), hexToBytes(nonce)).decrypt(hexToBytes(ciphertext)));
+      return bytesToUtf8(
+        gcm(hexToBytes(secret), hexToBytes(nonce)).decrypt(
+          hexToBytes(ciphertext),
+        ),
+      );
     } catch {
       await clear(key);
       return null;
@@ -42,9 +51,14 @@ export const secureAuthStorage = {
     const item = names(key);
     const secret = bytesToHex(Crypto.getRandomBytes(32));
     const nonce = Crypto.getRandomBytes(12);
-    const ciphertext = gcm(hexToBytes(secret), nonce).encrypt(utf8ToBytes(value));
+    const ciphertext = gcm(hexToBytes(secret), nonce).encrypt(
+      utf8ToBytes(value),
+    );
     // A crash between writes leaves an unusable pair that getItem clears.
-    await AsyncStorage.setItem(item.data, `${bytesToHex(nonce)}:${bytesToHex(ciphertext)}`);
+    await AsyncStorage.setItem(
+      item.data,
+      `${bytesToHex(nonce)}:${bytesToHex(ciphertext)}`,
+    );
     try {
       await SecureStore.setItemAsync(item.secret, secret);
     } catch (error) {

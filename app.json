@@ -4,9 +4,12 @@
     "slug": "psalmo",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "plugins": [],
-    "android": { "package": "com.paw.psalmo" },
+    "android": {
+      "package": "com.paw.psalmo",
+      "predictiveBackGestureEnabled": false
+    },
     "ios": { "bundleIdentifier": "com.paw.psalmo" }
   }
 }

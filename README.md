@@ -1,14 +1,15 @@
 # pSalmo
 
-Mobile service-operations app for the PAW worship team. It consolidates each weekly service's roster, temporary roles, shared notes, setlist, song arrangements, media references, and click-device configuration.
+Mobile service-operations app for GPdI Elshaddai Magelang. The five tabs are Beranda, Jadwal, Song Bank, Pengumuman, and Profil. IR 1 & 2 share a roster and setlist; IR 3 is independent.
 
 ## Baseline scope
 
-The 15 September 2026 V1 Scope Amendment in the supplied technical design is the authoritative scope. In particular, V1 includes Ibadah Raya 1 & 2 and Ibadah Raya 3, roster management, live-rehearsal click-device reliability, and a review-gated Smart Add workflow. The earlier statements excluding rostering and live use are superseded.
+The supplied design and its 15 September V1 Scope Amendment establish the baseline; the subsequently approved five-page/weekly-duty plan supersedes conflicting invitation, navigation, and permission assumptions. Smart Add and native audio playback remain later objectives.
 
 ## Stack
 
 - React Native + Expo development build
+- React Navigation bottom tabs with per-tab native detail stacks; SDK54 WebView for lazy video embeds
 - Supabase Auth + Postgres + Row Level Security
 - Supabase Edge Function for Smart Add
 - `react-native-audio-api` for the click device (native integration, added in the audio spike)
@@ -16,7 +17,7 @@ The 15 September 2026 V1 Scope Amendment in the supplied technical design is the
 ## Start locally
 
 ```sh
-npm install
+npm ci
 npm run start
 ```
 
@@ -25,12 +26,31 @@ Use an Expo development build rather than Expo Go once the click-device module i
 ## Configure Supabase
 
 1. Create a Supabase project and enable email authentication.
-2. Copy `.env.example` to `.env`, then set the public project URL and publishable key.
-3. Apply the SQL files in `supabase/migrations` in timestamp order through the Supabase CLI or SQL editor. All three have been run against project `uhyxiflkahqqutnkvash`; they are kept in the repository as the reproducible source of truth.
+2. Copy `.env.example` to `.env`, then set the public project URL, publishable key, and `EXPO_PUBLIC_CHURCH_TEAM_ID`. Restart Metro after configuration changes. Environment values prefixed `EXPO_PUBLIC_` are public, not credentials.
+3. Apply every SQL file in `supabase/migrations` in timestamp order through the Supabase CLI or SQL editor. All migrations through `202609160017_exact_account_linking.sql` are applied to project `uhyxiflkahqqutnkvash`.
+4. For this deployment only, `supabase/provision-church.sql` bootstraps the clean church using the existing prototype owner's account. It returns the generated church ID for environment configuration, copies no content, and is idempotent. For another deployment, provision its actual owner instead of assuming a `sounday` prototype exists.
 
 The migration creates profiles from `auth.users`, makes each team creator an owner, enables RLS on every application table, and deliberately keeps service-role credentials out of the mobile app.
 
-The current app supports email authentication, team creation/selection, service creation/listing, and service details. Owners and admins can add or remove temporary roster roles, notes, media links, and proposed-title setlist items, including a bulk one-title-per-line workflow, and can reorder setlist items atomically. Each team also has a canonical Song Bank; selected songs snapshot their default key and BPM into the service setlist. Each setlist item can store its own key, BPM, time signature, structure, chords/lyrics, arrangement link, and notes. Native session data is encrypted locally; the full flow still needs on-device verification. Song matching and Smart Add are next.
+The clean church starts empty; `sounday` remains intact but is outside the regular app flow. PIC adds roster names before signup and later links exact registered account emails without invitations. Linking grants membership; kicking revokes membership and access while retaining historical roster labels. A permanent `song_editor` capability allows library maintenance off duty; service editing additionally requires a linked WL/MD assignment. Owners/admins manage all church services and publish the weekly schedule independently of song approval.
+
+All members can browse published **roster-only** schedules. Unassigned members cannot query service details, setlists, notes, or media. Ordinary assigned members see approved details; authorized assigned WL/MD editors can prepare drafts. Home uses Asia/Jakarta and counts Sunday itself as the upcoming Sunday.
+
+Song Bank stores canonical sectioned plain lyrics, key/BPM/birama, attribution, and ordered labeled YouTube references. Adding a library song snapshots its title, artist, defaults, lyrics, and all references into the service arrangement. Subsequent library edits do not change those snapshots. Chords, structure, key/BPM overrides, links, and notes are edited per service. Reordering requires an expected revision and returns HTTP 409 for stale edits.
+
+Video is mounted only when expanded, requires a user gesture, never autoplays, and retains an external-link fallback. The WebView supplies application identification as required by [YouTube's embedded-player guidance](https://developers.google.com/youtube/terms/required-minimum-functionality#embedded-player-api-client-identity). Pengumuman and Peraturan remain placeholders. Profil edits the greeting name and supports sign-out. The Latihan/Edit/Play metronome is not implemented yet.
+
+## Validate
+
+```sh
+npm run typecheck
+npm test
+npx expo export --platform android --max-workers 1 --no-bytecode
+```
+
+Tests use Node24 (also configured in CI); `--test-isolation=none` avoids restricted Windows child-process spawning. Run `supabase/tests/weekly_workflow.sql` as postgres through SQL Editor for rollback-only authenticated-role policy and workflow tests. `tests/reorder-concurrency.cjs` exercises simultaneous authenticated RPCs against a separately prepared disposable fixture account; never point it at real church data.
+
+JavaScript export is not a native/Hermes build or on-device test. Complete [docs/device-validation.md](docs/device-validation.md) before pilot readiness. The database Security Advisor's guarded signed-in `SECURITY DEFINER` notices are intentional and documented in the tracker; leaked-password protection still needs an Auth configuration review.
 
 ## Planning
 

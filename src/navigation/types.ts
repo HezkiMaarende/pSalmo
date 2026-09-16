@@ -1,0 +1,17 @@
+export type Routes = {
+  Home: undefined;
+  Schedule: undefined;
+  Library: undefined;
+  Announcements: undefined;
+  Profile: undefined;
+  Week: { day: string };
+  Service: { id: string };
+  Arrangement: { serviceId: string; itemId: string };
+  AddSongs: { serviceId: string };
+  Song: { id: string };
+  SongEdit: { id?: string } | undefined;
+  Targets: { songId: string };
+  People: undefined;
+  ManageServices: undefined;
+  Rules: undefined;
+};

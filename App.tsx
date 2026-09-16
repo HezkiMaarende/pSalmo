@@ -1,343 +1,65 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import type { Session } from "@supabase/supabase-js";
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { isConfigured, supabase } from "./src/lib/supabase";
-import { acceptTeamInvite, addAssignment, addMediaReference, addNote, addSetlistItem, addSongToSetlist, bulkAddSetlistItems, createService, createSong, createTeam, createTeamInvite, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listSongs, listTeamInvites, listTeamMembers, listTeams, moveSetlistItem, removeTeamMember, revokeTeamInvite, setTeamMemberRole, updateServiceStatus, updateSetlistArrangement, type Service, type ServiceDetail, type Song, type Team, type TeamInvite, type TeamMember } from "./src/lib/services";
-import type { MembershipRole, ServiceStatus, ServiceType, SongStructureSection } from "./src/domain/service";
-
-function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
-  return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.button, disabled && styles.disabled]}><Text style={styles.buttonText}>{label}</Text></Pressable>;
+import { ChurchProvider, useChurch } from "./src/context/ChurchContext";
+import { AppNavigator } from "./src/navigation/AppNavigator";
+import { AuthScreen } from "./src/screens/AuthScreen";
+import {
+  Page,
+  Title,
+  Body,
+  Button,
+  Feedback,
+  useAction,
+} from "./src/components/ui";
+import { supabase } from "./src/lib/supabase";
+function Root() {
+  const church = useChurch();
+  const action = useAction();
+  if (church.loading)
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <Page>
+          <Feedback loading />
+        </Page>
+      </SafeAreaView>
+    );
+  if (!church.session) return <AuthScreen />;
+  if (!church.membership)
+    return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <Page>
+          <Title>Hello, {church.name || "teman"}</Title>
+          <Body>
+            Akun Anda belum ditautkan ke petugas gereja. Hubungi PIC dengan
+            email {church.session.user.email}.
+          </Body>
+          <Feedback error={church.error || action.error} />
+          <Button
+            title="Periksa keanggotaan lagi"
+            onPress={() => void action.run(church.refresh)}
+          />
+          <Button
+            title="Keluar akun"
+            onPress={() =>
+              void action.run(async () => {
+                const r = await supabase.auth.signOut();
+                if (r.error) throw r.error;
+              })
+            }
+          />
+        </Page>
+      </SafeAreaView>
+    );
+  return <AppNavigator />;
 }
-
-function Field({ label, value, onChangeText, secure = false, multiline = false }: { label: string; value: string; onChangeText: (value: string) => void; secure?: boolean; multiline?: boolean }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" secureTextEntry={secure} multiline={multiline} textAlignVertical={multiline ? "top" : "center"} value={value} onChangeText={onChangeText} style={[styles.input, multiline && styles.multilineInput]} /></View>;
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text>{children}</View>;
-}
-
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [booting, setBooting] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [team, setTeam] = useState<Team | null>(null);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [service, setService] = useState<Service | null>(null);
-  const [detail, setDetail] = useState<ServiceDetail | null>(null);
-  const [newTeamName, setNewTeamName] = useState("");
-  const [newServiceTitle, setNewServiceTitle] = useState("");
-  const [newServiceDate, setNewServiceDate] = useState("");
-  const [newServiceType, setNewServiceType] = useState<ServiceType>("ir_1_2");
-  const [inviteRole, setInviteRole] = useState<MembershipRole>("member");
-  const [inviteHours, setInviteHours] = useState("168");
-  const [latestInvite, setLatestInvite] = useState("");
-  const [joinCode, setJoinCode] = useState("");
-  const [assignmentRole, setAssignmentRole] = useState("");
-  const [assignmentName, setAssignmentName] = useState("");
-  const [assignmentMemberId, setAssignmentMemberId] = useState<string | null>(null);
-  const [noteBody, setNoteBody] = useState("");
-  const [mediaLabel, setMediaLabel] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [songTitle, setSongTitle] = useState("");
-  const [bulkSongTitles, setBulkSongTitles] = useState("");
-  const [newSongTitle, setNewSongTitle] = useState("");
-  const [newSongArtist, setNewSongArtist] = useState("");
-  const [newSongKey, setNewSongKey] = useState("");
-  const [newSongBpm, setNewSongBpm] = useState("");
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [arrangementKey, setArrangementKey] = useState("");
-  const [arrangementBpm, setArrangementBpm] = useState("");
-  const [arrangementTimeSignature, setArrangementTimeSignature] = useState("");
-  const [arrangementStructure, setArrangementStructure] = useState("");
-  const [arrangementLyrics, setArrangementLyrics] = useState("");
-  const [arrangementUrl, setArrangementUrl] = useState("");
-  const [arrangementNotes, setArrangementNotes] = useState("");
-
-  async function run(action: () => Promise<void>) {
-    setBusy(true); setError("");
-    try { await action(); } catch (caught) { setError(caught instanceof Error ? caught.message : "Something went wrong."); }
-    finally { setBusy(false); }
-  }
-
-  useEffect(() => {
-    if (!isConfigured) { setBooting(false); return; }
-    supabase.auth.getSession().then(({ data, error: authError }) => {
-      setSession(data.session); if (authError) setError(authError.message); setBooting(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      if (!nextSession) { setTeam(null); setTeams([]); setServices([]); setService(null); setDetail(null); }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => { if (session) void run(async () => setTeams(await listTeams())); }, [session?.user.id]);
-  useEffect(() => {
-    if (!team) { setTeamMembers([]); setTeamInvites([]); setSongs([]); return; }
-    void run(async () => {
-      const [loadedServices, loadedMembers, loadedSongs, loadedInvites] = await Promise.all([
-        listServices(team.id), listTeamMembers(team.id), listSongs(team.id),
-        team.role === "member" ? Promise.resolve([]) : listTeamInvites(team.id),
-      ]);
-      setServices(loadedServices); setTeamMembers(loadedMembers); setSongs(loadedSongs); setTeamInvites(loadedInvites);
-    });
-  }, [team?.id]);
-  useEffect(() => {
-    if (!service) { setDetail(null); return; }
-    void run(async () => setDetail(await getServiceDetail(service)));
-  }, [service?.id]);
-
-  function auth(mode: "signIn" | "signUp") {
-    void run(async () => {
-      if (!email.trim() || password.length < 6) throw new Error("Enter an email and a password of at least 6 characters.");
-      const result = mode === "signIn" ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password });
-      if (result.error) throw result.error;
-      if (mode === "signUp" && !result.data.session) Alert.alert("Check your email", "Confirm your address, then sign in.");
-    });
-  }
-
-  function addTeam() {
-    void run(async () => {
-      if (!session || !newTeamName.trim()) throw new Error("Enter a team name.");
-      const created = await createTeam(newTeamName);
-      setTeams((current) => [...current, created]); setTeam(created); setNewTeamName("");
-    });
-  }
-
-  function addService() {
-    void run(async () => {
-      if (!session || !team || !newServiceTitle.trim()) throw new Error("Enter a service title.");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(newServiceDate)) throw new Error("Use YYYY-MM-DD for the service date.");
-      const date = new Date(`${newServiceDate}T00:00:00+07:00`);
-      if (Number.isNaN(date.getTime()) || new Date(date.getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10) !== newServiceDate) {
-        throw new Error("Enter a valid service date.");
-      }
-      const created = await createService(team.id, session.user.id, newServiceTitle, newServiceType, date);
-      setServices((current) => [created, ...current]); setNewServiceTitle(""); setNewServiceDate(""); setService(created);
-    });
-  }
-
-  const canManageTeam = Boolean(team && team.role !== "member");
-  const canEditSetlist = Boolean(canManageTeam || (detail && session && detail.assignments.some((entry) =>
-    entry.user_id === session.user.id && ["wl", "md"].includes(entry.role_name.trim().toLowerCase()))));
-
-  async function refreshTeamMembersAndInvites() {
-    if (!team) return;
-    const [members, invites] = await Promise.all([
-      listTeamMembers(team.id),
-      team.role === "member" ? Promise.resolve([]) : listTeamInvites(team.id),
-    ]);
-    setTeamMembers(members); setTeamInvites(invites);
-  }
-
-  function createInvite() {
-    void run(async () => {
-      if (!team) return;
-      const invite = await createTeamInvite(team.id, inviteRole, Number(inviteHours));
-      setLatestInvite(invite.token);
-      await refreshTeamMembersAndInvites();
-    });
-  }
-
-  function joinTeam() {
-    void run(async () => {
-      const joined = await acceptTeamInvite(joinCode);
-      setTeams((current) => current.some((entry) => entry.id === joined.id) ? current : [...current, joined]);
-      setTeam(joined); setJoinCode("");
-    });
-  }
-
-  function changeMemberRole(member: TeamMember, role: MembershipRole) {
-    void run(async () => {
-      if (!team) return;
-      await setTeamMemberRole(team.id, member.id, role);
-      await refreshTeamMembersAndInvites();
-    });
-  }
-
-  function removeMember(member: TeamMember) {
-    void run(async () => {
-      if (!team) return;
-      await removeTeamMember(team.id, member.id);
-      await refreshTeamMembersAndInvites();
-    });
-  }
-
-  function revokeInvite(invite: TeamInvite) {
-    void run(async () => { await revokeTeamInvite(invite.id); await refreshTeamMembersAndInvites(); });
-  }
-
-  function changeServiceStatus(status: ServiceStatus) {
-    void run(async () => {
-      if (!service) return;
-      const updated = await updateServiceStatus(service.id, status);
-      setService(updated);
-      setServices((current) => current.map((entry) => entry.id === updated.id ? updated : entry));
-      setDetail((current) => current ? { ...current, service: updated } : current);
-    });
-  }
-
-  async function refreshDetail() {
-    if (!service) return;
-    setDetail(await getServiceDetail(service));
-  }
-
-  function changeWorkspace(action: () => Promise<void>) {
-    void run(async () => { await action(); await refreshDetail(); });
-  }
-
-  function saveAssignment() {
-    changeWorkspace(async () => {
-      if (!service || !assignmentRole.trim()) throw new Error("Enter a temporary role, such as WL or bass.");
-      const selected = teamMembers.find((member) => member.id === assignmentMemberId);
-      await addAssignment(service.id, assignmentRole, selected?.displayName || assignmentName, selected?.id);
-      setAssignmentRole(""); setAssignmentName(""); setAssignmentMemberId(null);
-    });
-  }
-
-  function saveNote() {
-    changeWorkspace(async () => {
-      if (!service || !session || !noteBody.trim()) throw new Error("Enter a shared note.");
-      await addNote(service.id, session.user.id, noteBody); setNoteBody("");
-    });
-  }
-
-  function saveMedia() {
-    changeWorkspace(async () => {
-      if (!service || !mediaLabel.trim() || !mediaUrl.trim()) throw new Error("Enter both a label and a URL.");
-      try { new URL(mediaUrl); } catch { throw new Error("Enter a valid absolute URL."); }
-      await addMediaReference(service.id, mediaLabel, mediaUrl); setMediaLabel(""); setMediaUrl("");
-    });
-  }
-
-  function saveSong() {
-    changeWorkspace(async () => {
-      if (!service || !songTitle.trim()) throw new Error("Enter a song title.");
-      await addSetlistItem(service, songTitle); setSongTitle("");
-    });
-  }
-
-  function saveBulkSongs() {
-    changeWorkspace(async () => {
-      if (!service) return;
-      await bulkAddSetlistItems(service, bulkSongTitles.split("\n"));
-      setBulkSongTitles("");
-    });
-  }
-
-  function saveToSongBank() {
-    void run(async () => {
-      if (!session || !team || !newSongTitle.trim()) throw new Error("Enter a canonical song title.");
-      const created = await createSong(team.id, session.user.id, newSongTitle, newSongArtist, newSongKey, newSongBpm);
-      setSongs((current) => [...current, created].sort((left, right) => left.title.localeCompare(right.title)));
-      setNewSongTitle(""); setNewSongArtist(""); setNewSongKey(""); setNewSongBpm("");
-    });
-  }
-
-  function editArrangement(item: ServiceDetail["items"][number]) {
-    setEditingItemId(item.id); setArrangementKey(item.key || ""); setArrangementBpm(item.bpm?.toString() || "");
-    setArrangementTimeSignature(item.time_signature || "");
-    setArrangementStructure(item.structure.map((section) => `${section.section}${section.bars === null ? "" : ` | ${section.bars}`}`).join("\n"));
-    setArrangementLyrics(item.lyrics_or_chords || ""); setArrangementUrl(item.arrangement_url || ""); setArrangementNotes(item.notes || "");
-  }
-
-  function parseStructure(value: string): SongStructureSection[] {
-    return value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
-      const [label, rawBars, ...extra] = line.split("|").map((part) => part.trim());
-      if (!label || extra.length) throw new Error("Structure lines must use Section or Section | bars.");
-      if (!rawBars) return { section: label, bars: null };
-      const bars = Number(rawBars);
-      if (!Number.isInteger(bars) || bars <= 0) throw new Error("Structure bars must be a positive whole number.");
-      return { section: label, bars };
-    });
-  }
-
-  function saveArrangement() {
-    changeWorkspace(async () => {
-      if (!editingItemId) return;
-      await updateSetlistArrangement(editingItemId, {
-        key: arrangementKey, bpm: arrangementBpm, timeSignature: arrangementTimeSignature,
-        structure: parseStructure(arrangementStructure), lyricsOrChords: arrangementLyrics,
-        arrangementUrl, notes: arrangementNotes,
-      });
-      setEditingItemId(null);
-    });
-  }
-
-  return <SafeAreaView style={styles.safe}><StatusBar style="light" /><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    <Text style={styles.brand}>pSalmo</Text><Text style={styles.title}>Sunday Service</Text>
-    {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-    {busy || booting ? <ActivityIndicator color="#A7F3D0" /> : null}
-    {!isConfigured ? <Section title="Set up this app"><Text style={styles.body}>Add the Supabase URL and publishable key to .env, then restart Expo.</Text></Section>
-      : booting ? null : !session ? <Section title="Sign in">
-        <Field label="Email" value={email} onChangeText={setEmail} /><Field label="Password" value={password} onChangeText={setPassword} secure />
-        <Button label="Sign in" onPress={() => auth("signIn")} disabled={busy} /><Button label="Create account" onPress={() => auth("signUp")} disabled={busy} />
-      </Section> : <>
-        <View style={styles.topline}><Text style={styles.body}>{session.user.email}</Text><Pressable accessibilityRole="button" onPress={() => void run(async () => { const result = await supabase.auth.signOut(); if (result.error) throw result.error; })}><Text style={styles.link}>Sign out</Text></Pressable></View>
-        {service && detail ? <>
-          <Button label="All services" onPress={() => setService(null)} />
-          <Text style={styles.heading}>{service.title}</Text><Text style={styles.meta}>{new Date(service.service_date).toLocaleDateString("id-ID")} · {service.service_type === "ir_3" ? "Ibadah Raya 3" : "Ibadah Raya 1 & 2"} · {service.status}</Text>
-          {canManageTeam ? <Section title="Publication"><Text style={styles.meta}>Members can only open approved services.</Text><View style={styles.memberChoices}>{(["draft", "approved", "archived", "cancelled"] as ServiceStatus[]).map((status) => <Pressable key={status} accessibilityRole="button" onPress={() => changeServiceStatus(status)} style={[styles.choice, service.status === status && styles.choiceSelected]}><Text style={styles.choiceText}>{status}</Text></Pressable>)}</View></Section> : null}
-          <Section title="Roster">{detail.assignments.length ? detail.assignments.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.role_name}: {entry.display_name || "Assigned member"}</Text>{canManageTeam ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteAssignment(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No assignments yet.</Text>}
-            {canManageTeam ? <><Field label="Temporary role" value={assignmentRole} onChangeText={setAssignmentRole} /><Field label="Name (for a guest or manual entry)" value={assignmentName} onChangeText={setAssignmentName} />
-              {teamMembers.length ? <View style={styles.memberChoices}>{teamMembers.map((member) => <Pressable key={member.id} accessibilityRole="button" onPress={() => { setAssignmentMemberId(member.id); setAssignmentName(""); }} style={[styles.choice, assignmentMemberId === member.id && styles.choiceSelected]}><Text style={styles.choiceText}>{member.displayName}</Text></Pressable>)}</View> : null}
-              <Button label="Add assignment" onPress={saveAssignment} disabled={busy} /></> : null}</Section>
-          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.itemBlock}><View style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.song_title || entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canEditSetlist ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => editArrangement(entry)}><Text style={styles.link}>Edit</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>
-              {entry.time_signature || entry.arrangement_url || entry.structure.length || entry.notes ? <Text style={styles.meta}>{entry.time_signature ? `${entry.time_signature} · ` : ""}{entry.structure.length ? `${entry.structure.map((section) => `${section.section}${section.bars === null ? "" : ` (${section.bars})`}`).join(", ")} · ` : ""}{entry.arrangement_url ? "Arrangement linked · " : ""}{entry.notes || ""}</Text> : null}
-              {editingItemId === entry.id ? <View style={styles.editor}><Field label="Service key" value={arrangementKey} onChangeText={setArrangementKey} /><Field label="Service BPM" value={arrangementBpm} onChangeText={setArrangementBpm} /><Field label="Time signature" value={arrangementTimeSignature} onChangeText={setArrangementTimeSignature} /><Field label="Structure (one per line: Verse 1 | 16)" value={arrangementStructure} onChangeText={setArrangementStructure} multiline /><Field label="Lyrics or chords" value={arrangementLyrics} onChangeText={setArrangementLyrics} multiline /><Field label="Arrangement URL" value={arrangementUrl} onChangeText={setArrangementUrl} /><Field label="Service notes" value={arrangementNotes} onChangeText={setArrangementNotes} multiline /><Button label="Save arrangement" onPress={saveArrangement} disabled={busy} /><Pressable accessibilityRole="button" onPress={() => setEditingItemId(null)}><Text style={styles.link}>Cancel editing</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
-            {canEditSetlist ? <><Field label="Proposed song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add proposal" onPress={saveSong} disabled={busy} /><Field label="Bulk proposals (one title per line)" value={bulkSongTitles} onChangeText={setBulkSongTitles} multiline /><Button label="Add proposals in bulk" onPress={saveBulkSongs} disabled={busy} />
-              {songs.length ? <View style={styles.songChoices}>{songs.map((song) => <Pressable key={song.id} accessibilityRole="button" onPress={() => changeWorkspace(() => addSongToSetlist(service, song))} style={styles.choice}><Text style={styles.choiceText}>+ {song.title}{song.artist ? ` · ${song.artist}` : ""}</Text></Pressable>)}</View> : <Text style={styles.muted}>Add canonical songs in the Song Bank below, then select one here.</Text>}</> : null}</Section>
-          <Section title="Shared notes">{detail.notes.length ? detail.notes.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.body}</Text>{canManageTeam ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteNote(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No notes yet.</Text>}
-            {canManageTeam ? <><Field label="New shared note" value={noteBody} onChangeText={setNoteBody} /><Button label="Add note" onPress={saveNote} disabled={busy} /></> : null}</Section>
-          <Section title="Media references">{detail.media.length ? detail.media.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.label}: {entry.url}</Text>{canManageTeam ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteMediaReference(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No references yet.</Text>}
-            {canManageTeam ? <><Field label="Reference label" value={mediaLabel} onChangeText={setMediaLabel} /><Field label="Reference URL" value={mediaUrl} onChangeText={setMediaUrl} /><Button label="Add reference" onPress={saveMedia} disabled={busy} /></> : null}</Section>
-        </> : team ? <>
-          <Button label="Teams" onPress={() => { setTeam(null); setService(null); }} />
-          <Text style={styles.heading}>{team.name}</Text><Text style={styles.meta}>Permission role: {team.role}</Text>
-          {canManageTeam ? <Section title="Team access"><Text style={styles.meta}>Invite codes are single-use and can be revoked. Share the newest code securely; it is not shown again after leaving this screen.</Text>
-            <View style={styles.memberChoices}>{(["member", "admin"] as MembershipRole[]).map((role) => <Pressable key={role} accessibilityRole="button" onPress={() => setInviteRole(role)} style={[styles.choice, inviteRole === role && styles.choiceSelected]}><Text style={styles.choiceText}>{role}</Text></Pressable>)}</View>
-            <Field label="Invite expiry in hours (1–720)" value={inviteHours} onChangeText={setInviteHours} /><Button label="Create single-use invite" onPress={createInvite} disabled={busy} />
-            {latestInvite ? <View style={styles.inviteCode}><Text style={styles.label}>New invite code — copy it now</Text><Text selectable style={styles.code}>{latestInvite}</Text></View> : null}
-            <Text style={styles.label}>Members</Text>{teamMembers.map((member) => <View key={member.id} style={styles.memberAdminRow}><Text style={styles.row}>{member.displayName} · {member.role}</Text>{member.role !== "owner" ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeMemberRole(member, "member")}><Text style={styles.link}>Member</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeMemberRole(member, "admin")}><Text style={styles.link}>Admin</Text></Pressable><Pressable accessibilityRole="button" onPress={() => removeMember(member)}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>)}
-            {teamInvites.filter((invite) => !invite.revokedAt && !invite.usedAt && new Date(invite.expiresAt) > new Date()).length ? <><Text style={styles.label}>Active invites</Text>{teamInvites.filter((invite) => !invite.revokedAt && !invite.usedAt && new Date(invite.expiresAt) > new Date()).map((invite) => <View key={invite.id} style={styles.actionRow}><Text style={styles.meta}>{invite.role} · expires {new Date(invite.expiresAt).toLocaleString("id-ID")}</Text><Pressable accessibilityRole="button" onPress={() => revokeInvite(invite)}><Text style={styles.danger}>Revoke</Text></Pressable></View>)}</> : null}</Section> : null}
-          <Section title="Weekly services">{services.length ? services.map((entry) => <Pressable key={entry.id} accessibilityRole="button" onPress={() => setService(entry)} style={styles.card}><Text style={styles.row}>{entry.title}</Text><Text style={styles.meta}>{new Date(entry.service_date).toLocaleDateString("id-ID")} · {entry.status}</Text></Pressable>) : <Text style={styles.muted}>No services yet.</Text>}</Section>
-          <Section title="Song Bank">{songs.length ? songs.map((song) => <Text key={song.id} style={styles.row}>{song.title}{song.artist ? ` · ${song.artist}` : ""}{song.default_key ? ` · ${song.default_key}` : ""}{song.default_bpm ? ` · ${song.default_bpm} BPM` : ""}</Text>) : <Text style={styles.muted}>No canonical songs yet.</Text>}
-            {team.role !== "member" ? <><Field label="Song title" value={newSongTitle} onChangeText={setNewSongTitle} /><Field label="Artist (optional)" value={newSongArtist} onChangeText={setNewSongArtist} /><Field label="Default key (optional)" value={newSongKey} onChangeText={setNewSongKey} /><Field label="Default BPM (optional)" value={newSongBpm} onChangeText={setNewSongBpm} /><Button label="Add to Song Bank" onPress={saveToSongBank} disabled={busy} /></> : null}</Section>
-          {team.role !== "member" ? <Section title="New service"><Field label="Title" value={newServiceTitle} onChangeText={setNewServiceTitle} /><Field label="Date (YYYY-MM-DD)" value={newServiceDate} onChangeText={setNewServiceDate} />
-            <View style={styles.topline}><Pressable onPress={() => setNewServiceType("ir_1_2")}><Text style={styles.link}>IR 1 & 2 {newServiceType === "ir_1_2" ? "✓" : ""}</Text></Pressable><Pressable onPress={() => setNewServiceType("ir_3")}><Text style={styles.link}>IR 3 {newServiceType === "ir_3" ? "✓" : ""}</Text></Pressable></View>
-            <Button label="Create service" onPress={addService} disabled={busy} /></Section> : null}
-        </> : <><Section title="Your teams">{teams.length ? teams.map((entry) => <Pressable key={entry.id} accessibilityRole="button" onPress={() => setTeam(entry)} style={styles.card}><Text style={styles.row}>{entry.name}</Text><Text style={styles.meta}>{entry.role}</Text></Pressable>) : <Text style={styles.muted}>You are not in a team yet.</Text>}</Section>
-          <Section title="Join a team"><Text style={styles.meta}>Ask an admin for a single-use invitation code.</Text><Field label="Invitation code" value={joinCode} onChangeText={setJoinCode} /><Button label="Join team" onPress={joinTeam} disabled={busy} /></Section>
-          <Section title="Create a team"><Field label="Team name" value={newTeamName} onChangeText={setNewTeamName} /><Button label="Create team" onPress={addTeam} disabled={busy} /></Section></>}
-      </>}
-  </ScrollView></SafeAreaView>;
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="light" />
+      <ChurchProvider>
+        <Root />
+      </ChurchProvider>
+    </SafeAreaProvider>
+  );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#111827" }, content: { padding: 24, paddingBottom: 60, gap: 18 },
-  brand: { color: "#A7F3D0", fontSize: 20, fontWeight: "700" }, title: { color: "#FFFFFF", fontSize: 30, fontWeight: "800" },
-  heading: { color: "#FFFFFF", fontSize: 25, fontWeight: "700" }, body: { color: "#E5E7EB", fontSize: 16, lineHeight: 24 },
-  muted: { color: "#9CA3AF", fontSize: 15 }, meta: { color: "#9CA3AF", fontSize: 14, lineHeight: 20 },
-  row: { color: "#F9FAFB", fontSize: 16, lineHeight: 25 }, link: { color: "#A7F3D0", fontSize: 15, fontWeight: "600" },
-  error: { color: "#FECACA", backgroundColor: "#7F1D1D", padding: 12, borderRadius: 8 },
-  section: { backgroundColor: "#1F2937", borderRadius: 16, padding: 18, gap: 14 }, sectionTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
-  card: { backgroundColor: "#374151", borderRadius: 12, padding: 14, gap: 4 }, field: { gap: 6 }, label: { color: "#D1D5DB", fontSize: 14 },
-  input: { backgroundColor: "#374151", borderRadius: 8, color: "#FFFFFF", padding: 12, fontSize: 16 }, multilineInput: { minHeight: 96 },
-  button: { backgroundColor: "#047857", borderRadius: 10, padding: 14, alignItems: "center" }, buttonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
-  disabled: { opacity: 0.45 }, topline: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  actionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }, controls: { flexDirection: "row", gap: 12, alignItems: "center" },
-  memberAdminRow: { gap: 6, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "#374151" }, inviteCode: { gap: 6, backgroundColor: "#064E3B", borderRadius: 8, padding: 12 }, code: { color: "#FFFFFF", fontFamily: "monospace", fontSize: 15 },
-  itemBlock: { gap: 8, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#374151" }, editor: { gap: 12, paddingTop: 8 },
-  danger: { color: "#FCA5A5", fontSize: 14, fontWeight: "600" }, memberChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { borderWidth: 1, borderColor: "#6B7280", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 }, choiceSelected: { borderColor: "#A7F3D0", backgroundColor: "#065F46" }, choiceText: { color: "#F9FAFB", fontSize: 14 },
-  songChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-});

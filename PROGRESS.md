@@ -4,7 +4,7 @@ Last updated: 16 September 2026
 
 | Milestone | Status | Exit criteria |
 | --- | --- | --- |
-| 0. Project foundation | In progress | Typecheck, domain tests, and Android JavaScript export pass; CI baseline added; device launch, Hermes build, and remote CI execution remain |
+| 0. Project foundation | In progress | Typecheck, domain tests, Android JavaScript export, and GitHub CI pass; device launch and native/Hermes validation remain |
 | 1. Data and access | Implemented; device gate open | Guarded exact-email roster linking, membership revocation, permanent song-editor capability, roster-only publication projection, and role/RLS SQL tests pass; native session/device exercise remains |
 | 2. Five-page weekly church workflow | Implemented; device gate open | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains |
 | 3. Song Bank and Smart Add | In progress | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain |
@@ -29,7 +29,8 @@ Last updated: 16 September 2026
 - [x] Test rolled-back synthetic authenticated owner/member/editor/outsider roles against live RLS/RPCs. Linking, unregistered-email rejection, guest labels, actual MD without editor permission, off-duty library permission, unrelated-service denial, draft/approved access, publication projection, cross-church references, preserved kick history, and prototype invitation behavior pass.
 - [x] Test simultaneous authenticated reorder requests through the actual API using a disposable account/workspace: one accepted, one **HTTP409/PT409** conflict, complete unique ordering. Remove that disposable account/workspace and verify 0 remaining test accounts.
 - [x] `npm run typecheck`, `npm test` (5 tests), and final Android JavaScript export (`--no-bytecode --max-workers 1`) pass.
-- [x] Add GitHub Actions checks for typecheck, domain tests, and Android JavaScript export. Remote CI execution is not yet claimed.
+- [x] Add GitHub Actions checks for typecheck, domain tests, and Android JavaScript export. [Implementation CI run](https://github.com/HezkiMaarende/pSalmo/actions/runs/35085709952) completed successfully for `a7cd2d6`.
+- [x] Publish the implementation to GitHub `main` as [a7cd2d6](https://github.com/HezkiMaarende/pSalmo/commit/a7cd2d648be9aafdd1c27222b6a67bcbc9219857) and verify its exact file-tree hash against the locally tested build.
 - [ ] Complete the real Android navigation/auth/roster/library/video/profile checklist in `docs/device-validation.md`.
 - [ ] Build/launch native Android with Hermes and test encrypted session storage/activity restoration. JavaScript export does not close this gate.
 - [ ] Review/enable leaked-password protection in Supabase Auth if available for this project's plan; settings were not changed here.
@@ -67,6 +68,7 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 - The first role test caught a service-row lock requiring PIC update permission; an advisory lock now serializes initial append while retaining invoker/RLS and the editable-setlist parent lock. The actual API race exposed SQLSTATE40001's HTTP500 mapping; optimistic conflicts now use PT409/HTTP409, tested concurrently.
 - Security Advisor: no error-level findings; one grouped warning lists 10 intentionally authenticated-only guarded SECURITY DEFINER RPCs, and one warning reports leaked-password protection disabled. See [RPC notice remediation](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable) and [Auth password-protection guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Signed-in RPC notice is not a substitute for role tests; those tests are recorded above.
 - RLS revokes future access immediately after membership removal. Data already downloaded to a device cannot be remotely recalled; screens discard blurred loads and refetch on opening, and foreground membership refresh removes church screens if access is gone.
+- Windows command-line Git hit DNS/TLS credential errors. The connected GitHub API published one coherent fast-forward commit with the exact verified tree. Local `main` and `origin/main` were reconciled to that verified commit without changing files; the original task commit remains recoverable in `backup/five-page-local-a277757`.
 
 - TypeScript check passed on 16 September 2026.
 - Android JavaScript export passed with `--no-bytecode --max-workers 1`. A normal export reached Hermes bytecode generation but failed with Windows `spawn EPERM`; a native/Hermes build is not yet verified.

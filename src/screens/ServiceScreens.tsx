@@ -108,9 +108,14 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
             <Title>Latihan & metronom</Title>
             <Body muted>
               Atur BPM, birama, struktur, chord, dan catatan melalui Edit
-              aransemen. Pemutar metronom dengan mode Edit/Play akan hadir pada
-              fase audio; belum tersedia di sini.
+              aransemen atau halaman Latihan. Audio klik memerlukan development
+              build native; belum tervalidasi untuk pelayanan langsung.
             </Body>
+            <Button
+              title="Mulai latihan · Edit / Play"
+              disabled={!d.items.length}
+              onPress={() => navigation.navigate("Practice", { serviceId: id })}
+            />
           </Card>
           <Card>
             <Title>Catatan ibadah</Title>

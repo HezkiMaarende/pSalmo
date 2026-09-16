@@ -542,3 +542,24 @@ export async function saveArrangement(
     .eq("id", id);
   if (r.error) throw new Error(r.error.message);
 }
+
+// Only these arrangement columns change; key, lyrics, structure and references
+// are never overwritten by the Latihan editor. Select proves RLS updated a row.
+export async function saveClickSettings(
+  id: string,
+  bpm: string,
+  signature: string,
+  notes: string,
+): Promise<void> {
+  const r = await supabase
+    .from("setlist_items")
+    .update({
+      bpm: bpmValue(bpm),
+      time_signature: signatureValue(signature),
+      notes: notes.trim() || null,
+    })
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (r.error) throw new Error(r.error.message);
+}

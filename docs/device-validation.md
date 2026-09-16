@@ -26,4 +26,4 @@ The 16 September five-page implementation has passed TypeScript, pure-domain tes
 
 ## Deferred, not acceptance claims
 
-Native metronome/Edit/Play, offline prefetch, Smart Add extraction, CSV import, medley groups, mixer/IEM reliability, and a real church pilot belong to subsequent objectives.
+The Latihan Edit/Play baseline and foreground-only native audio spike are now implemented; use [latihan-audio.md](latihan-audio.md) for their still-open native/device gates. Offline prefetch, Smart Add extraction, CSV import, medley groups, background/route-safe audio, mixer/IEM reliability and a real church pilot remain deferred.

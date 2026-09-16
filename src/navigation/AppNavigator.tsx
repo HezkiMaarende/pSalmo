@@ -23,6 +23,7 @@ import {
   TargetsScreen,
 } from "../screens/LibraryScreens";
 import { PeopleScreen } from "../screens/PeopleScreen";
+import { PracticeScreen } from "../screens/PracticeScreen";
 import {
   ProfileScreen,
   AnnouncementsScreen,
@@ -84,6 +85,11 @@ function PageStack({
         name="Arrangement"
         component={ArrangementScreen}
         options={{ title: "Aransemen ibadah" }}
+      />
+      <Stack.Screen
+        name="Practice"
+        component={PracticeScreen}
+        options={{ title: "Latihan · Edit / Play" }}
       />
       <Stack.Screen
         name="AddSongs"

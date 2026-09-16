@@ -6,3 +6,5 @@ dist/
 !.env.example
 .npm-cache/
 .test-build/
+android/
+ios/

@@ -38,7 +38,9 @@ All members can browse published **roster-only** schedules. Unassigned members c
 
 Song Bank stores canonical sectioned plain lyrics, key/BPM/birama, attribution, and ordered labeled YouTube references. Adding a library song snapshots its title, artist, defaults, lyrics, and all references into the service arrangement. Subsequent library edits do not change those snapshots. Chords, structure, key/BPM overrides, links, and notes are edited per service. Reordering requires an expected revision and returns HTTP 409 for stale edits.
 
-Video is mounted only when expanded, requires a user gesture, never autoplays, and retains an external-link fallback. The WebView supplies application identification as required by [YouTube's embedded-player guidance](https://developers.google.com/youtube/terms/required-minimum-functionality#embedded-player-api-client-identity). Pengumuman and Peraturan remain placeholders. Profil edits the greeting name and supports sign-out. The Latihan/Edit/Play metronome is not implemented yet.
+Video is mounted only when expanded, requires a user gesture, never autoplays, and retains an external-link fallback. The WebView supplies application identification as required by [YouTube's embedded-player guidance](https://developers.google.com/youtube/terms/required-minimum-functionality#embedded-player-api-client-identity). Pengumuman and Peraturan remain placeholders. Profil edits the greeting name and supports sign-out.
+
+Latihan has separate Edit/Play modes, service-specific BPM/birama/notes, tap tempo, beat indicators and Start/Stop/Next. Native click playback requires a development build (`npx expo run:android`), not Expo Go. It is a **foreground-only audio spike, not validated for live service/mixer use**; background/lock playback and Android route-disconnect safety remain outstanding. Read [docs/latihan-audio.md](docs/latihan-audio.md) for counting conventions, architecture, native build instructions and acceptance gates.
 
 ## Validate
 

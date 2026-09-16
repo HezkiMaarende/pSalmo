@@ -77,6 +77,11 @@ begin
   update public.services set status='approved' where id=s; get diagnostics rows_changed=row_count; assert rows_changed=0, 'WL cannot approve';
   update public.service_notes set body='Illegal' where service_id=s; get diagnostics rows_changed=row_count; assert rows_changed=0, 'WL cannot edit shared notes';
   select i.id,l.revision into item,revision_before from public.setlist_items i join public.setlists l on l.id=i.setlist_id where l.service_id=s order by i.position limit 1;
+  update public.setlist_items set bpm=137,time_signature='6/8',notes='Latihan setting' where id=item;
+  get diagnostics rows_changed=row_count; assert rows_changed=1, 'assigned WL editor can save click settings';
+  assert exists(select 1 from public.setlist_items where id=item and bpm=137 and time_signature='6/8' and notes='Latihan setting' and key='C' and lyrics_or_chords like '%Original%' and jsonb_array_length(library_references)=2), 'click edit preserves arrangement columns';
+  assert exists(select 1 from public.songs where id=song and default_bpm=120), 'click edit leaves canonical library unchanged';
+  select revision into revision_before from public.setlists where service_id=s;
   revision_after := public.move_setlist_item(item,'down',revision_before);
   assert revision_after>revision_before, 'revision advanced';
   begin perform public.move_setlist_item(item,'up',revision_before); raise exception 'FAIL stale revision accepted'; exception when sqlstate 'PT409' then null; end;
@@ -97,16 +102,22 @@ begin
   perform set_config('request.jwt.claim.sub',ids->>'member',true);
   assert exists(select 1 from public.services where id=s), 'assigned approved visible';
   assert not public.service_edit_permission(s), 'ordinary duty not editor';
+  update public.setlist_items set bpm=200,notes='Illegal ordinary click change' where id=item;
+  get diagnostics rows_changed=row_count; assert rows_changed=0, 'ordinary assigned member cannot save click settings';
   perform set_config('request.jwt.claim.sub',ids->>'owner',true);
   delete from public.service_assignments where service_id=s and person_id=(ids->>'editor_person')::uuid;
   perform set_config('request.jwt.claim.sub',ids->>'editor',true);
   assert not exists(select 1 from public.services where id=s), 'off-duty editor service hidden';
+  update public.setlist_items set bpm=200 where id=item;
+  get diagnostics rows_changed=row_count; assert rows_changed=0, 'off-duty editor cannot save click settings';
   perform public.save_library_song(t,song,'{"title":"Off duty editor update","lyrics":"Library still editable"}','[]');
   perform set_config('request.jwt.claim.sub',ids->>'owner',true);
   perform public.kick_roster_person((ids->>'member_person')::uuid);
   assert exists(select 1 from public.service_assignments where service_id=s and display_name='member'), 'historical name retained';
   perform set_config('request.jwt.claim.sub',ids->>'member',true);
   assert not exists(select 1 from public.services where id=s), 'kicked assignment cannot bypass membership';
+  update public.setlist_items set bpm=200 where id=item;
+  get diagnostics rows_changed=row_count; assert rows_changed=0, 'kicked member cannot save click settings';
   assert not exists(select 1 from public.songs where id=song), 'kicked library blocked';
   begin perform public.read_weekly_schedule(t,'2026-09-20','2026-09-20'); raise exception 'FAIL kicked schedule'; exception when raise_exception then if sqlerrm='FAIL kicked schedule' then raise; end if; end;
   -- The old prototype invite records/path remain usable, with member checks.
@@ -117,5 +128,5 @@ begin
   assert exists(select 1 from public.team_memberships where team_id=(ids->>'prototype')::uuid and user_id=(ids->>'member')::uuid), 'prototype invite preserved';
 end $$;
 reset role;
-select 'PASS: linking, duty RLS, publication, snapshot, revision conflict, membership guards, kick history; all fixtures rolled back' as result;
+select 'PASS: linking, duty RLS, publication, snapshot, click-settings isolation/permissions, revision conflict, membership guards, kick history; all fixtures rolled back' as result;
 rollback;

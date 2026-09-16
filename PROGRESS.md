@@ -8,10 +8,31 @@ Last updated: 16 September 2026
 | 1. Data and access | Implemented; device gate open | Guarded exact-email roster linking, membership revocation, permanent song-editor capability, roster-only publication projection, and role/RLS SQL tests pass; native session/device exercise remains |
 | 2. Five-page weekly church workflow | Implemented; device gate open | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains |
 | 3. Song Bank and Smart Add | In progress | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain |
-| 4. Offline and click device | Not started | Upcoming service prefetch, read-only offline mode, 30-minute hardware validation |
+| 4. Offline and click device | Native audio spike implemented; device gate open | Latihan Edit/Play and native PCM-loop driver implemented; native/Hermes, route-safe/background behavior, offline prefetch and 30-minute hardware validation remain |
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
 
 ## This iteration
+
+### Phone feedback and next step
+
+- [x] User reports trying the revised app on their phone and that it looks great. This confirms a user-reported launch/layout smoke test, not every permission, persistence, video, or native/Hermes acceptance check. Phone OS and runtime were not specified.
+- [x] User confirmed Frozen Ape Tempo through its Android and iOS store links. See `docs/latihan-audio.md` for references, counting conventions and the bounded Edit/Play baseline.
+
+### Latihan / native audio spike — 16 September
+
+- [x] Add a fresh-RLS-loaded Latihan route from Ibadah. Play has song information, beat indicators, saved notes/structure, Start/Stop and non-autostarting Next; Edit is available only to authorized service editors.
+- [x] Edit/tap BPM, birama and notes with guarded save and unsaved-change confirmation before song/mode switching. Updates preserve key, lyrics, structure, references and canonical Song Bank. No schema migration is required; existing arrangement columns and tested RLS apply.
+- [x] Pin `react-native-audio-api` 0.12.2 (official compatibility table supports RN0.81); gate/lazily load native playback so Expo Go remains usable for settings/notes with Start disabled and a clear development-build explanation.
+- [x] Generate an accented, >=30-second complete-bar PCM loop using absolute sample positions; native looping schedules sound, not a JS timer. The display reads the audio clock. Support integer BPM20–400, 1–13 denominator-note pulses, denominators2/4/8/16; require valid saved settings rather than silently defaulting.
+- [x] Cancel late pending starts, serialize competing activation, stop on Next/blur/unmount/refresh/inactive/background and reported interruptions/duck/route changes; never resume automatically. This is foreground-only, not the final background/lock-screen objective.
+- [x] TypeScript and **12 tests** pass: calendar/visibility/video plus supported-tempo/meter sample math, nominal rounding drift (<4ms over 30 minutes), PCM accent/silence, beat-loop alignment, tap tempo and cancellation/competing-start/failure recovery. Mathematical bounds are not measured device timing.
+- [x] Extend and run rollback-only authenticated-role tests against live Supabase: assigned WL editor saves click settings; ordinary/off-duty/kicked users cannot; arrangement columns and Song Bank stay independent. Full prior workflow regression passes; synthetic fixtures roll back.
+- [x] Android JavaScript export passes with `--no-bytecode --max-workers 1` (994 modules, 1.95MB). `npm ci --dry-run --ignore-scripts` resolves the lockfile without legacy-peer flags. Expo config introspection completes and shows unused FFmpeg disabled, no audio background modes or foreground-service permissions added.
+- [ ] Publish this iteration to GitHub and verify the corresponding CI run.
+- [ ] Build/launch native Android with Hermes and exercise actual audible Start/Stop/Next and persisted Edit settings. Normal Hermes export was retried and still fails at Windows `spawn EPERM`; native playback is not verified.
+- [ ] Implement and test native Android route-disconnect safety: inspected audio-library Android source does not emit `routeChange`. Do not rely on the listener for IEM disconnect/speaker fallback. iOS listener behavior also needs device testing.
+- [ ] Measure actual Start latency/memory, silent-mode/interruption behavior and 30-minute wired/USB audio-clock timing. Extend to reliable background/lock-screen playback only with explicit native lifecycle/route handling. Not live-service-ready.
+- [ ] Review dependency advisories before pilot: `npm audit --omit=dev` reports 16 (7 moderate,9 high) in the existing Expo/build-tool dependency graph; audio package itself is not flagged. No forced SDK upgrade was applied during this audio spike.
 
 ### Approved five-page objective — 16 September
 
@@ -55,7 +76,7 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 - [x] Add bulk service-only setlist proposals with blank-line and duplicate filtering.
 - [x] Add and apply expiring single-use invites, invite revocation, guarded membership role/removal RPCs, and approved-service visibility rules.
 - [x] Distinguish PIC/admin workspace management from temporary WL/MD setlist editing in the app UI and RLS policies.
-- [ ] Install dependencies and run the starter on a device/simulator.
+- [x] Install dependencies; user reports the revised app runs on their phone. Full device acceptance remains outstanding above.
 - [x] Run cross-team and role-specific policy checks as synthetic authenticated identities, plus a real authenticated API reorder race. Separate-person device sessions remain in the acceptance checklist.
 - [ ] Settle the remaining open product decisions below before their related features.
 
@@ -73,7 +94,7 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 - TypeScript check passed on 16 September 2026.
 - Android JavaScript export passed with `--no-bytecode --max-workers 1`. A normal export reached Hermes bytecode generation but failed with Windows `spawn EPERM`; a native/Hermes build is not yet verified.
 - Web export stopped at `fetch failed` before bundling; no web-bundle result is claimed.
-- No on-device sign-in or service flow has been exercised yet.
+- No agent-run on-device sign-in or service flow has been exercised. The subsequent user-reported phone launch/layout smoke test is recorded above; detailed workflow and native/Hermes results are not yet established.
 - Workspace mutations are compiled and backed by RLS; they still need an on-device and separate-user exercise.
 - Song Bank changes passed TypeScript and Android JavaScript-export checks; a real team/service exercise remains.
 - Access and publication changes passed TypeScript and Android JavaScript-export checks. The Supabase Security Advisor confirms the access RPCs are not anonymous; its signed-in `SECURITY DEFINER` notices are expected because the guarded RPCs are the only supported membership-write path.
@@ -107,7 +128,7 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 
 1. **Device acceptance first:** use `docs/device-validation.md`, verify native/Hermes, then triage actual church preparation feedback.
 2. **Roster import research:** confirm the church's real CSV columns, role names, family/group entries, multiple names per role, account matching, and how schedules are approved. Manual entry stays the first implementation; do not invent/import a CSV format yet.
-3. **Audio discovery:** confirm the exact Tempo app and desired controls before implementing Latihan with separate Edit/Play modes. Establish native audio-clock/output-route behavior and actual mixer/IEM test devices.
+3. **Audio validation next:** Frozen Ape Tempo reference confirmed; Latihan Edit/Play foreground-only spike is implemented. Build/launch native/Hermes, implement Android route safety, confirm actual phone/mixer/IEM chain, and measure audio-clock timing before background/lock playback or live use. Custom accents, dotted beats, subdivisions/count-in and other Tempo extras wait for rehearsal feedback.
 4. **Smart Add:** decide provider/consent and de-identified fixtures; implement review-gated WhatsApp extraction/matching without silently creating library songs. Carry encrypted expiring job requirements forward.
 5. **Medleys and licensing:** medley grouping remains deferred; confirm lyrics licensing/attribution and CCLI before wider rollout (attribution fields exist but do not establish a licence).
 6. **Offline and pilot:** upcoming-service prefetch/read-only offline mode, actual background/hardware reliability testing, then a real team pilot.

@@ -6,6 +6,7 @@ export type Routes = {
   Profile: undefined;
   Week: { day: string };
   Service: { id: string };
+  Practice: { serviceId: string };
   Arrangement: { serviceId: string; itemId: string };
   AddSongs: { serviceId: string };
   Song: { id: string };

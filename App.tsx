@@ -3,15 +3,15 @@ import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { isConfigured, supabase } from "./src/lib/supabase";
-import { addAssignment, addMediaReference, addNote, addSetlistItem, addSongToSetlist, createService, createSong, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listSongs, listTeamMembers, listTeams, moveSetlistItem, type Service, type ServiceDetail, type Song, type Team, type TeamMember } from "./src/lib/services";
-import type { ServiceType } from "./src/domain/service";
+import { addAssignment, addMediaReference, addNote, addSetlistItem, addSongToSetlist, createService, createSong, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listSongs, listTeamMembers, listTeams, moveSetlistItem, updateSetlistArrangement, type Service, type ServiceDetail, type Song, type Team, type TeamMember } from "./src/lib/services";
+import type { ServiceType, SongStructureSection } from "./src/domain/service";
 
 function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.button, disabled && styles.disabled]}><Text style={styles.buttonText}>{label}</Text></Pressable>;
 }
 
-function Field({ label, value, onChangeText, secure = false }: { label: string; value: string; onChangeText: (value: string) => void; secure?: boolean }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" secureTextEntry={secure} value={value} onChangeText={onChangeText} style={styles.input} /></View>;
+function Field({ label, value, onChangeText, secure = false, multiline = false }: { label: string; value: string; onChangeText: (value: string) => void; secure?: boolean; multiline?: boolean }) {
+  return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" secureTextEntry={secure} multiline={multiline} textAlignVertical={multiline ? "top" : "center"} value={value} onChangeText={onChangeText} style={[styles.input, multiline && styles.multilineInput]} /></View>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -47,6 +47,14 @@ export default function App() {
   const [newSongArtist, setNewSongArtist] = useState("");
   const [newSongKey, setNewSongKey] = useState("");
   const [newSongBpm, setNewSongBpm] = useState("");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [arrangementKey, setArrangementKey] = useState("");
+  const [arrangementBpm, setArrangementBpm] = useState("");
+  const [arrangementTimeSignature, setArrangementTimeSignature] = useState("");
+  const [arrangementStructure, setArrangementStructure] = useState("");
+  const [arrangementLyrics, setArrangementLyrics] = useState("");
+  const [arrangementUrl, setArrangementUrl] = useState("");
+  const [arrangementNotes, setArrangementNotes] = useState("");
 
   async function run(action: () => Promise<void>) {
     setBusy(true); setError("");
@@ -161,6 +169,36 @@ export default function App() {
     });
   }
 
+  function editArrangement(item: ServiceDetail["items"][number]) {
+    setEditingItemId(item.id); setArrangementKey(item.key || ""); setArrangementBpm(item.bpm?.toString() || "");
+    setArrangementTimeSignature(item.time_signature || "");
+    setArrangementStructure(item.structure.map((section) => `${section.section}${section.bars === null ? "" : ` | ${section.bars}`}`).join("\n"));
+    setArrangementLyrics(item.lyrics_or_chords || ""); setArrangementUrl(item.arrangement_url || ""); setArrangementNotes(item.notes || "");
+  }
+
+  function parseStructure(value: string): SongStructureSection[] {
+    return value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+      const [label, rawBars, ...extra] = line.split("|").map((part) => part.trim());
+      if (!label || extra.length) throw new Error("Structure lines must use Section or Section | bars.");
+      if (!rawBars) return { section: label, bars: null };
+      const bars = Number(rawBars);
+      if (!Number.isInteger(bars) || bars <= 0) throw new Error("Structure bars must be a positive whole number.");
+      return { section: label, bars };
+    });
+  }
+
+  function saveArrangement() {
+    changeWorkspace(async () => {
+      if (!editingItemId) return;
+      await updateSetlistArrangement(editingItemId, {
+        key: arrangementKey, bpm: arrangementBpm, timeSignature: arrangementTimeSignature,
+        structure: parseStructure(arrangementStructure), lyricsOrChords: arrangementLyrics,
+        arrangementUrl, notes: arrangementNotes,
+      });
+      setEditingItemId(null);
+    });
+  }
+
   return <SafeAreaView style={styles.safe}><StatusBar style="light" /><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <Text style={styles.brand}>pSalmo</Text><Text style={styles.title}>Sunday Service</Text>
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -178,7 +216,9 @@ export default function App() {
             {canManageService ? <><Field label="Temporary role" value={assignmentRole} onChangeText={setAssignmentRole} /><Field label="Name (for a guest or manual entry)" value={assignmentName} onChangeText={setAssignmentName} />
               {teamMembers.length ? <View style={styles.memberChoices}>{teamMembers.map((member) => <Pressable key={member.id} accessibilityRole="button" onPress={() => { setAssignmentMemberId(member.id); setAssignmentName(""); }} style={[styles.choice, assignmentMemberId === member.id && styles.choiceSelected]}><Text style={styles.choiceText}>{member.displayName}</Text></Pressable>)}</View> : null}
               <Button label="Add assignment" onPress={saveAssignment} disabled={busy} /></> : null}</Section>
-          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.song_title || entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canManageService ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
+          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.itemBlock}><View style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.song_title || entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canManageService ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => editArrangement(entry)}><Text style={styles.link}>Edit</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>
+              {entry.time_signature || entry.arrangement_url || entry.structure.length || entry.notes ? <Text style={styles.meta}>{entry.time_signature ? `${entry.time_signature} · ` : ""}{entry.structure.length ? `${entry.structure.map((section) => `${section.section}${section.bars === null ? "" : ` (${section.bars})`}`).join(", ")} · ` : ""}{entry.arrangement_url ? "Arrangement linked · " : ""}{entry.notes || ""}</Text> : null}
+              {editingItemId === entry.id ? <View style={styles.editor}><Field label="Service key" value={arrangementKey} onChangeText={setArrangementKey} /><Field label="Service BPM" value={arrangementBpm} onChangeText={setArrangementBpm} /><Field label="Time signature" value={arrangementTimeSignature} onChangeText={setArrangementTimeSignature} /><Field label="Structure (one per line: Verse 1 | 16)" value={arrangementStructure} onChangeText={setArrangementStructure} multiline /><Field label="Lyrics or chords" value={arrangementLyrics} onChangeText={setArrangementLyrics} multiline /><Field label="Arrangement URL" value={arrangementUrl} onChangeText={setArrangementUrl} /><Field label="Service notes" value={arrangementNotes} onChangeText={setArrangementNotes} multiline /><Button label="Save arrangement" onPress={saveArrangement} disabled={busy} /><Pressable accessibilityRole="button" onPress={() => setEditingItemId(null)}><Text style={styles.link}>Cancel editing</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
             {canManageService ? <><Field label="Proposed song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add proposal" onPress={saveSong} disabled={busy} />
               {songs.length ? <View style={styles.songChoices}>{songs.map((song) => <Pressable key={song.id} accessibilityRole="button" onPress={() => changeWorkspace(() => addSongToSetlist(service, song))} style={styles.choice}><Text style={styles.choiceText}>+ {song.title}{song.artist ? ` · ${song.artist}` : ""}</Text></Pressable>)}</View> : <Text style={styles.muted}>Add canonical songs in the Song Bank below, then select one here.</Text>}</> : null}</Section>
           <Section title="Shared notes">{detail.notes.length ? detail.notes.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.body}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteNote(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No notes yet.</Text>}
@@ -209,10 +249,11 @@ const styles = StyleSheet.create({
   error: { color: "#FECACA", backgroundColor: "#7F1D1D", padding: 12, borderRadius: 8 },
   section: { backgroundColor: "#1F2937", borderRadius: 16, padding: 18, gap: 14 }, sectionTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "700" },
   card: { backgroundColor: "#374151", borderRadius: 12, padding: 14, gap: 4 }, field: { gap: 6 }, label: { color: "#D1D5DB", fontSize: 14 },
-  input: { backgroundColor: "#374151", borderRadius: 8, color: "#FFFFFF", padding: 12, fontSize: 16 },
+  input: { backgroundColor: "#374151", borderRadius: 8, color: "#FFFFFF", padding: 12, fontSize: 16 }, multilineInput: { minHeight: 96 },
   button: { backgroundColor: "#047857", borderRadius: 10, padding: 14, alignItems: "center" }, buttonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
   disabled: { opacity: 0.45 }, topline: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   actionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }, controls: { flexDirection: "row", gap: 12, alignItems: "center" },
+  itemBlock: { gap: 8, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#374151" }, editor: { gap: 12, paddingTop: 8 },
   danger: { color: "#FCA5A5", fontSize: 14, fontWeight: "600" }, memberChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { borderWidth: 1, borderColor: "#6B7280", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 }, choiceSelected: { borderColor: "#A7F3D0", backgroundColor: "#065F46" }, choiceText: { color: "#F9FAFB", fontSize: 14 },
   songChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });

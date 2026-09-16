@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { MembershipRole, ServiceStatus, ServiceType } from "../domain/service";
+import type { MembershipRole, ServiceStatus, ServiceType, SongStructureSection } from "../domain/service";
 
 export interface Team {
   id: string;
@@ -44,7 +44,11 @@ export interface ServiceDetail {
     artist: string | null;
     key: string | null;
     bpm: number | null;
+    time_signature: string | null;
+    structure: SongStructureSection[];
+    lyrics_or_chords: string | null;
     arrangement_url: string | null;
+    notes: string | null;
   }>;
 }
 
@@ -138,7 +142,7 @@ export async function getServiceDetail(service: Service): Promise<ServiceDetail>
   if (setlistResult.error) throw new Error(setlistResult.error.message);
   const rawItems = setlistResult.data
     ? unwrap(await supabase.from("setlist_items")
-      .select("id, position, song_id, proposed_title, artist, key, bpm, arrangement_url")
+      .select("id, position, song_id, proposed_title, artist, key, bpm, time_signature, structure, lyrics_or_chords, arrangement_url, notes")
       .eq("setlist_id", setlistResult.data.id).order("position"))
     : [];
   const songIds = rawItems.flatMap((item) => item.song_id ? [item.song_id] : []);
@@ -230,6 +234,37 @@ export async function addSongToSetlist(service: Service, song: Song): Promise<vo
 
 export async function deleteSetlistItem(id: string): Promise<void> {
   const result = await supabase.from("setlist_items").delete().eq("id", id);
+  if (result.error) throw new Error(result.error.message);
+}
+
+export interface SetlistArrangementInput {
+  key: string;
+  bpm: string;
+  timeSignature: string;
+  structure: SongStructureSection[];
+  lyricsOrChords: string;
+  arrangementUrl: string;
+  notes: string;
+}
+
+export async function updateSetlistArrangement(id: string, input: SetlistArrangementInput): Promise<void> {
+  const bpm = input.bpm.trim() ? Number(input.bpm) : null;
+  if (bpm !== null && (!Number.isInteger(bpm) || bpm < 20 || bpm > 400)) {
+    throw new Error("BPM must be a whole number from 20 to 400.");
+  }
+  const timeSignature = input.timeSignature.trim();
+  if (timeSignature && !/^([1-9][0-9]*)\/([1-9][0-9]*)$/.test(timeSignature)) {
+    throw new Error("Time signature must use the form 4/4.");
+  }
+  const arrangementUrl = input.arrangementUrl.trim();
+  if (arrangementUrl) {
+    try { new URL(arrangementUrl); } catch { throw new Error("Arrangement link must be a valid absolute URL."); }
+  }
+  const result = await supabase.from("setlist_items").update({
+    key: input.key.trim() || null, bpm, time_signature: timeSignature || null,
+    structure: input.structure, lyrics_or_chords: input.lyricsOrChords.trim() || null,
+    arrangement_url: arrangementUrl || null, notes: input.notes.trim() || null,
+  }).eq("id", id);
   if (result.error) throw new Error(result.error.message);
 }
 

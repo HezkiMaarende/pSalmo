@@ -6,7 +6,7 @@ Last updated: 16 September 2026
 | --- | --- | --- |
 | 0. Project foundation | In progress | Typecheck and Android JavaScript export pass; device launch, Hermes build, and CI baseline remain |
 | 1. Data and access | In progress | Schema, RLS hardening, assignment policy, and encrypted native session storage added; multi-user policy tests remain |
-| 2. Weekly service workspace | In progress | Auth, team/service setup, admin roster/notes/media/setlist create-delete, and atomic setlist reorder added; editing existing entries and device testing remain |
+| 2. Weekly service workspace | In progress | Auth, team/service setup, admin roster/notes/media/setlist editing, and atomic setlist reorder added; lifecycle, medleys, and device testing remain |
 | 3. Song Bank and Smart Add | In progress | Canonical Song Bank creation and setlist selection added; matching, review/commit, provider abstraction, and expiring encrypted jobs remain |
 | 4. Offline and click device | Not started | Upcoming service prefetch, read-only offline mode, 30-minute hardware validation |
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
@@ -27,6 +27,7 @@ Last updated: 16 September 2026
 - [x] Add and apply `202609160003_setlist_reorder.sql` for atomic adjacent setlist reordering; rerun Security Advisor (0 errors, 0 warnings).
 - [x] Fix first-team creation under RLS with the `create_team` RPC; verified as the signed-in test user in a rolled-back transaction.
 - [x] Add a team-scoped Song Bank with canonical title, artist, default key, and BPM, plus canonical-song selection for service setlists.
+- [x] Add service-specific setlist arrangement editing for key, BPM, time signature, structure, lyrics/chords, arrangement link, and notes.
 - [ ] Install dependencies and run the starter on a device/simulator.
 - [ ] Run cross-team and role-specific policy tests using separate authenticated users.
 - [ ] Settle the remaining open product decisions below before their related features.

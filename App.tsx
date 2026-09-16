@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { isConfigured, supabase } from "./src/lib/supabase";
-import { addAssignment, addMediaReference, addNote, addSetlistItem, createService, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listTeamMembers, listTeams, moveSetlistItem, type Service, type ServiceDetail, type Team, type TeamMember } from "./src/lib/services";
+import { addAssignment, addMediaReference, addNote, addSetlistItem, addSongToSetlist, createService, createSong, createTeam, deleteAssignment, deleteMediaReference, deleteNote, deleteSetlistItem, getServiceDetail, listServices, listSongs, listTeamMembers, listTeams, moveSetlistItem, type Service, type ServiceDetail, type Song, type Team, type TeamMember } from "./src/lib/services";
 import type { ServiceType } from "./src/domain/service";
 
 function Button({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
@@ -28,6 +28,7 @@ export default function App() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [team, setTeam] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [service, setService] = useState<Service | null>(null);
   const [detail, setDetail] = useState<ServiceDetail | null>(null);
@@ -42,6 +43,10 @@ export default function App() {
   const [mediaLabel, setMediaLabel] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [songTitle, setSongTitle] = useState("");
+  const [newSongTitle, setNewSongTitle] = useState("");
+  const [newSongArtist, setNewSongArtist] = useState("");
+  const [newSongKey, setNewSongKey] = useState("");
+  const [newSongBpm, setNewSongBpm] = useState("");
 
   async function run(action: () => Promise<void>) {
     setBusy(true); setError("");
@@ -63,10 +68,10 @@ export default function App() {
 
   useEffect(() => { if (session) void run(async () => setTeams(await listTeams())); }, [session?.user.id]);
   useEffect(() => {
-    if (!team) { setTeamMembers([]); return; }
+    if (!team) { setTeamMembers([]); setSongs([]); return; }
     void run(async () => {
-      const [loadedServices, loadedMembers] = await Promise.all([listServices(team.id), listTeamMembers(team.id)]);
-      setServices(loadedServices); setTeamMembers(loadedMembers);
+      const [loadedServices, loadedMembers, loadedSongs] = await Promise.all([listServices(team.id), listTeamMembers(team.id), listSongs(team.id)]);
+      setServices(loadedServices); setTeamMembers(loadedMembers); setSongs(loadedSongs);
     });
   }, [team?.id]);
   useEffect(() => {
@@ -147,6 +152,15 @@ export default function App() {
     });
   }
 
+  function saveToSongBank() {
+    void run(async () => {
+      if (!session || !team || !newSongTitle.trim()) throw new Error("Enter a canonical song title.");
+      const created = await createSong(team.id, session.user.id, newSongTitle, newSongArtist, newSongKey, newSongBpm);
+      setSongs((current) => [...current, created].sort((left, right) => left.title.localeCompare(right.title)));
+      setNewSongTitle(""); setNewSongArtist(""); setNewSongKey(""); setNewSongBpm("");
+    });
+  }
+
   return <SafeAreaView style={styles.safe}><StatusBar style="light" /><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <Text style={styles.brand}>pSalmo</Text><Text style={styles.title}>Sunday Service</Text>
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -164,8 +178,9 @@ export default function App() {
             {canManageService ? <><Field label="Temporary role" value={assignmentRole} onChangeText={setAssignmentRole} /><Field label="Name (for a guest or manual entry)" value={assignmentName} onChangeText={setAssignmentName} />
               {teamMembers.length ? <View style={styles.memberChoices}>{teamMembers.map((member) => <Pressable key={member.id} accessibilityRole="button" onPress={() => { setAssignmentMemberId(member.id); setAssignmentName(""); }} style={[styles.choice, assignmentMemberId === member.id && styles.choiceSelected]}><Text style={styles.choiceText}>{member.displayName}</Text></Pressable>)}</View> : null}
               <Button label="Add assignment" onPress={saveAssignment} disabled={busy} /></> : null}</Section>
-          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canManageService ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
-            {canManageService ? <><Field label="Song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add song" onPress={saveSong} disabled={busy} /></> : null}</Section>
+          <Section title="Setlist">{detail.items.length ? detail.items.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.position + 1}. {entry.song_title || entry.proposed_title || "Song Bank song"}{entry.artist ? ` · ${entry.artist}` : ""}{entry.key ? ` · ${entry.key}` : ""}{entry.bpm ? ` · ${entry.bpm} BPM` : ""}</Text>{canManageService ? <View style={styles.controls}><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "up"))}><Text style={styles.link}>↑</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => moveSetlistItem(entry.id, "down"))}><Text style={styles.link}>↓</Text></Pressable><Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteSetlistItem(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable></View> : null}</View>) : <Text style={styles.muted}>No songs yet.</Text>}
+            {canManageService ? <><Field label="Proposed song title" value={songTitle} onChangeText={setSongTitle} /><Button label="Add proposal" onPress={saveSong} disabled={busy} />
+              {songs.length ? <View style={styles.songChoices}>{songs.map((song) => <Pressable key={song.id} accessibilityRole="button" onPress={() => changeWorkspace(() => addSongToSetlist(service, song))} style={styles.choice}><Text style={styles.choiceText}>+ {song.title}{song.artist ? ` · ${song.artist}` : ""}</Text></Pressable>)}</View> : <Text style={styles.muted}>Add canonical songs in the Song Bank below, then select one here.</Text>}</> : null}</Section>
           <Section title="Shared notes">{detail.notes.length ? detail.notes.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.body}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteNote(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No notes yet.</Text>}
             {canManageService ? <><Field label="New shared note" value={noteBody} onChangeText={setNoteBody} /><Button label="Add note" onPress={saveNote} disabled={busy} /></> : null}</Section>
           <Section title="Media references">{detail.media.length ? detail.media.map((entry) => <View key={entry.id} style={styles.actionRow}><Text style={styles.row}>{entry.label}: {entry.url}</Text>{canManageService ? <Pressable accessibilityRole="button" onPress={() => changeWorkspace(() => deleteMediaReference(entry.id))}><Text style={styles.danger}>Remove</Text></Pressable> : null}</View>) : <Text style={styles.muted}>No references yet.</Text>}
@@ -174,6 +189,8 @@ export default function App() {
           <Button label="Teams" onPress={() => { setTeam(null); setService(null); }} />
           <Text style={styles.heading}>{team.name}</Text><Text style={styles.meta}>Permission role: {team.role}</Text>
           <Section title="Weekly services">{services.length ? services.map((entry) => <Pressable key={entry.id} accessibilityRole="button" onPress={() => setService(entry)} style={styles.card}><Text style={styles.row}>{entry.title}</Text><Text style={styles.meta}>{new Date(entry.service_date).toLocaleDateString("id-ID")} · {entry.status}</Text></Pressable>) : <Text style={styles.muted}>No services yet.</Text>}</Section>
+          <Section title="Song Bank">{songs.length ? songs.map((song) => <Text key={song.id} style={styles.row}>{song.title}{song.artist ? ` · ${song.artist}` : ""}{song.default_key ? ` · ${song.default_key}` : ""}{song.default_bpm ? ` · ${song.default_bpm} BPM` : ""}</Text>) : <Text style={styles.muted}>No canonical songs yet.</Text>}
+            {team.role !== "member" ? <><Field label="Song title" value={newSongTitle} onChangeText={setNewSongTitle} /><Field label="Artist (optional)" value={newSongArtist} onChangeText={setNewSongArtist} /><Field label="Default key (optional)" value={newSongKey} onChangeText={setNewSongKey} /><Field label="Default BPM (optional)" value={newSongBpm} onChangeText={setNewSongBpm} /><Button label="Add to Song Bank" onPress={saveToSongBank} disabled={busy} /></> : null}</Section>
           {team.role !== "member" ? <Section title="New service"><Field label="Title" value={newServiceTitle} onChangeText={setNewServiceTitle} /><Field label="Date (YYYY-MM-DD)" value={newServiceDate} onChangeText={setNewServiceDate} />
             <View style={styles.topline}><Pressable onPress={() => setNewServiceType("ir_1_2")}><Text style={styles.link}>IR 1 & 2 {newServiceType === "ir_1_2" ? "✓" : ""}</Text></Pressable><Pressable onPress={() => setNewServiceType("ir_3")}><Text style={styles.link}>IR 3 {newServiceType === "ir_3" ? "✓" : ""}</Text></Pressable></View>
             <Button label="Create service" onPress={addService} disabled={busy} /></Section> : null}
@@ -197,4 +214,5 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 }, topline: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   actionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 }, controls: { flexDirection: "row", gap: 12, alignItems: "center" },
   danger: { color: "#FCA5A5", fontSize: 14, fontWeight: "600" }, memberChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { borderWidth: 1, borderColor: "#6B7280", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999 }, choiceSelected: { borderColor: "#A7F3D0", backgroundColor: "#065F46" }, choiceText: { color: "#F9FAFB", fontSize: 14 },
+  songChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });

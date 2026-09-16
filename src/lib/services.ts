@@ -12,6 +12,15 @@ export interface TeamMember {
   displayName: string;
 }
 
+export interface Song {
+  id: string;
+  team_id: string;
+  title: string;
+  artist: string | null;
+  default_key: string | null;
+  default_bpm: number | null;
+}
+
 export interface Service {
   id: string;
   team_id: string;
@@ -29,6 +38,8 @@ export interface ServiceDetail {
   items: Array<{
     id: string;
     position: number;
+    song_id: string | null;
+    song_title: string | null;
     proposed_title: string | null;
     artist: string | null;
     key: string | null;
@@ -85,6 +96,25 @@ export async function listTeamMembers(teamId: string): Promise<TeamMember[]> {
   });
 }
 
+export async function listSongs(teamId: string): Promise<Song[]> {
+  return unwrap(await supabase.from("songs")
+    .select("id, team_id, title, artist, default_key, default_bpm")
+    .eq("team_id", teamId).order("title")) as Song[];
+}
+
+export async function createSong(
+  teamId: string, userId: string, title: string, artist: string, defaultKey: string, defaultBpm: string,
+): Promise<Song> {
+  const bpm = defaultBpm.trim() ? Number(defaultBpm) : null;
+  if (bpm !== null && (!Number.isInteger(bpm) || bpm < 20 || bpm > 400)) {
+    throw new Error("BPM must be a whole number from 20 to 400.");
+  }
+  return unwrap(await supabase.from("songs").insert({
+    team_id: teamId, created_by: userId, title: title.trim(), artist: artist.trim() || null,
+    default_key: defaultKey.trim() || null, default_bpm: bpm,
+  }).select("id, team_id, title, artist, default_key, default_bpm").single()) as Song;
+}
+
 export async function createService(
   teamId: string, userId: string, title: string, type: ServiceType, date: Date,
 ): Promise<Service> {
@@ -106,11 +136,17 @@ export async function getServiceDetail(service: Service): Promise<ServiceDetail>
     supabase.from("setlists").select("id").eq("service_id", service.id).maybeSingle(),
   ]);
   if (setlistResult.error) throw new Error(setlistResult.error.message);
-  const items = setlistResult.data
+  const rawItems = setlistResult.data
     ? unwrap(await supabase.from("setlist_items")
-      .select("id, position, proposed_title, artist, key, bpm, arrangement_url")
+      .select("id, position, song_id, proposed_title, artist, key, bpm, arrangement_url")
       .eq("setlist_id", setlistResult.data.id).order("position"))
     : [];
+  const songIds = rawItems.flatMap((item) => item.song_id ? [item.song_id] : []);
+  const songs = songIds.length ? unwrap(await supabase.from("songs").select("id, title").in("id", songIds)) : [];
+  const items = rawItems.map((item) => ({
+    ...item,
+    song_title: item.song_id ? songs.find((song) => song.id === item.song_id)?.title || null : null,
+  }));
   return {
     service,
     assignments: unwrap(assignmentsResult),
@@ -162,16 +198,32 @@ export async function deleteMediaReference(id: string): Promise<void> {
 }
 
 export async function addSetlistItem(service: Service, title: string): Promise<void> {
+  const setlistId = await ensureSetlist(service);
+  const existing = unwrap(await supabase.from("setlist_items").select("position").eq("setlist_id", setlistId)
+    .order("position", { ascending: false }).limit(1));
+  const result = await supabase.from("setlist_items").insert({
+    setlist_id: setlistId, proposed_title: title.trim(), position: (existing[0]?.position ?? -1) + 1,
+  });
+  if (result.error) throw new Error(result.error.message);
+}
+
+async function ensureSetlist(service: Service): Promise<string> {
   let setlist = await supabase.from("setlists").select("id").eq("service_id", service.id).maybeSingle();
   if (setlist.error) throw new Error(setlist.error.message);
   if (!setlist.data) {
     setlist = await supabase.from("setlists").insert({ service_id: service.id, title: `${service.title} setlist` }).select("id").single();
     if (setlist.error || !setlist.data) throw new Error(setlist.error?.message || "Could not create the setlist.");
   }
-  const existing = unwrap(await supabase.from("setlist_items").select("position").eq("setlist_id", setlist.data.id)
+  return setlist.data.id;
+}
+
+export async function addSongToSetlist(service: Service, song: Song): Promise<void> {
+  const setlistId = await ensureSetlist(service);
+  const existing = unwrap(await supabase.from("setlist_items").select("position").eq("setlist_id", setlistId)
     .order("position", { ascending: false }).limit(1));
   const result = await supabase.from("setlist_items").insert({
-    setlist_id: setlist.data.id, proposed_title: title.trim(), position: (existing[0]?.position ?? -1) + 1,
+    setlist_id: setlistId, song_id: song.id, artist: song.artist,
+    key: song.default_key, bpm: song.default_bpm, position: (existing[0]?.position ?? -1) + 1,
   });
   if (result.error) throw new Error(result.error.message);
 }

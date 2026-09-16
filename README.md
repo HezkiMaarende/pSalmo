@@ -30,7 +30,7 @@ Use an Expo development build rather than Expo Go once the click-device module i
 
 The migration creates profiles from `auth.users`, makes each team creator an owner, enables RLS on every application table, and deliberately keeps service-role credentials out of the mobile app.
 
-The current app supports email authentication, team creation/selection, service creation/listing, and service details. Owners and admins can add or remove temporary roster roles, notes, media links, and proposed-title setlist items, and can reorder setlist items atomically. Native session data is encrypted locally; the full flow still needs on-device verification. Song Bank matching, arrangements, and Smart Add are next.
+The current app supports email authentication, team creation/selection, service creation/listing, and service details. Owners and admins can add or remove temporary roster roles, notes, media links, and proposed-title setlist items, and can reorder setlist items atomically. Each team also has a canonical Song Bank; selected songs snapshot their default key and BPM into the service setlist. Native session data is encrypted locally; the full flow still needs on-device verification. Song matching, arrangements, and Smart Add are next.
 
 ## Planning
 

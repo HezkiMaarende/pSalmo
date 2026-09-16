@@ -7,7 +7,7 @@ Last updated: 16 September 2026
 | 0. Project foundation | In progress | Typecheck and Android JavaScript export pass; device launch, Hermes build, and CI baseline remain |
 | 1. Data and access | In progress | Schema, RLS hardening, assignment policy, and encrypted native session storage added; multi-user policy tests remain |
 | 2. Weekly service workspace | In progress | Auth, team/service setup, admin roster/notes/media/setlist create-delete, and atomic setlist reorder added; editing existing entries and device testing remain |
-| 3. Song Bank and Smart Add | Not started | Canonical matching, review/commit flow, provider abstraction, expiring encrypted jobs |
+| 3. Song Bank and Smart Add | In progress | Canonical Song Bank creation and setlist selection added; matching, review/commit, provider abstraction, and expiring encrypted jobs remain |
 | 4. Offline and click device | Not started | Upcoming service prefetch, read-only offline mode, 30-minute hardware validation |
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
 
@@ -26,6 +26,7 @@ Last updated: 16 September 2026
 - [x] Add admin controls for temporary roster roles, shared notes, media references, and proposed-title setlist items.
 - [x] Add and apply `202609160003_setlist_reorder.sql` for atomic adjacent setlist reordering; rerun Security Advisor (0 errors, 0 warnings).
 - [x] Fix first-team creation under RLS with the `create_team` RPC; verified as the signed-in test user in a rolled-back transaction.
+- [x] Add a team-scoped Song Bank with canonical title, artist, default key, and BPM, plus canonical-song selection for service setlists.
 - [ ] Install dependencies and run the starter on a device/simulator.
 - [ ] Run cross-team and role-specific policy tests using separate authenticated users.
 - [ ] Settle the remaining open product decisions below before their related features.
@@ -37,6 +38,7 @@ Last updated: 16 September 2026
 - Web export stopped at `fetch failed` before bundling; no web-bundle result is claimed.
 - No on-device sign-in or service flow has been exercised yet.
 - Workspace mutations are compiled and backed by RLS; they still need an on-device and separate-user exercise.
+- Song Bank changes passed TypeScript and Android JavaScript-export checks; a real team/service exercise remains.
 
 ## Decisions captured from the design
 

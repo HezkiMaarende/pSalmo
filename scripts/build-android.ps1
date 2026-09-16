@@ -35,7 +35,7 @@ if ($taskNativeParent.StartsWith($taskRoot, [StringComparison]::OrdinalIgnoreCas
 $taskNativeRoot = Join-Path $taskNativeParent ('psn-' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 if ($taskNativeRoot.Length -gt 60) { throw 'Choose a shorter -NativeBuildParent (build root must be at most 60 characters).' }
 New-Item -ItemType Directory -Path $taskNativeRoot | Out-Null
-$taskExcluded = @('.git', 'node_modules', 'android', 'ios', '.expo', '.npm-cache', '.test-build', '.gradle-native', 'artifacts', 'dist') | ForEach-Object { Join-Path $taskRoot $_ }
+$taskExcluded = @('.git', 'node_modules', 'android', 'ios', '.expo', '.cxx', '.npm-cache', '.test-build', '.gradle-native', 'artifacts', 'dist') | ForEach-Object { Join-Path $taskRoot $_ }
 & robocopy.exe $taskRoot $taskNativeRoot /E /XJ /NFL /NDL /NJH /NJS /NP /R:1 /W:1 /XD $taskExcluded
 if ($LASTEXITCODE -ge 8) { throw 'Copying the native-build sources failed.' }
 Write-Host "Short native-build folder: $taskNativeRoot"

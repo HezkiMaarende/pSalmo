@@ -10,3 +10,4 @@ android/
 ios/
 .gradle-native/
 artifacts/
+.cxx/

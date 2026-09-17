@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Routes, RootRoutes } from "../navigation/types";
@@ -26,6 +26,7 @@ import { defaultMeter } from "../domain/metronome";
 import { songLabel } from "../domain/songLabel";
 import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
+import { SongTextReview } from "../components/SongTextReview";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 export function ServiceScreen({ route, navigation }: Props<"Service">) {
   const { styles } = useUi();
@@ -88,7 +89,7 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
           <Title>Daftar lagu</Title>
           {d.can_edit && (
             <Button
-              title="Tambah lagu · manual / Song Bank"
+              title="Tambah lagu · manual / teks WhatsApp / Song Bank"
               onPress={() => navigation.navigate("AddSongs", { serviceId: id })}
             />
           )}
@@ -544,6 +545,12 @@ function AddSongsContent({
   const navigation = useNavigation();
   const [raw, setRaw] = useState("");
   const [query, setQuery] = useState("");
+  const [reviewDirty, setReviewDirty] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const reviewStatus = useCallback((dirty: boolean, busy: boolean) => {
+    setReviewDirty(dirty);
+    setReviewBusy(busy);
+  }, []);
   const state = useLoad(
     async () => ({
       detail: await api.getServiceDetail(serviceId),
@@ -553,21 +560,24 @@ function AddSongsContent({
   );
   const a = useAction();
   const [message, setMessage] = useState("");
-  usePreventRemove(!!raw.trim() || a.busy, ({ data }) => {
-    if (a.busy) return;
-    Alert.alert(
-      "Judul belum ditambahkan",
-      "Kembali tanpa menambahkan judul manual?",
-      [
-        { text: "Tetap di sini", style: "cancel" },
-        {
-          text: "Abaikan",
-          style: "destructive",
-          onPress: () => navigation.dispatch(data.action),
-        },
-      ],
-    );
-  });
+  usePreventRemove(
+    !!raw.trim() || reviewDirty || a.busy || reviewBusy,
+    ({ data }) => {
+      if (a.busy || reviewBusy) return;
+      Alert.alert(
+        "Draft lagu belum ditambahkan",
+        "Kembali tanpa menambahkan draft manual / pratinjau teks?",
+        [
+          { text: "Tetap di sini", style: "cancel" },
+          {
+            text: "Abaikan",
+            style: "destructive",
+            onPress: () => navigation.dispatch(data.action),
+          },
+        ],
+      );
+    },
+  );
   return (
     <Page>
       <Title>Tambah lagu</Title>
@@ -576,23 +586,31 @@ function AddSongsContent({
       )}
       <Feedback loading={state.loading} error={state.error || a.error} />
       <Body>{message}</Body>
+      {(state.data?.detail.can_edit || reviewDirty || reviewBusy) && (
+        <SongTextReview
+          serviceId={serviceId}
+          externalBusy={a.busy || !state.data?.detail.can_edit}
+          onStatusChange={reviewStatus}
+          onAdded={() => void state.reload()}
+        />
+      )}
       {state.data?.detail.can_edit && (
         <>
           <Card>
             <Field
               label="Judul manual · satu per baris"
-              disabled={a.busy}
+              disabled={a.busy || reviewBusy}
               value={raw}
               onChangeText={setRaw}
               multiline
             />
             <Body muted>
-              Ekstraksi pesan WhatsApp otomatis menunggu fase Smart Add. Gunakan
-              judul manual sekarang.
+              Judul manual tetap service-only. Gunakan pratinjau teks di atas
+              untuk meninjau pesan sebelum menambahkan.
             </Body>
             <Button
               title="Tambah judul manual"
-              disabled={a.busy}
+              disabled={a.busy || reviewBusy}
               onPress={() =>
                 void a.run(async () => {
                   await api.addProposals(serviceId, raw);
@@ -621,7 +639,7 @@ function AddSongsContent({
                 <Body muted>{s.artist}</Body>
                 <Button
                   title="Tambahkan ke ibadah"
-                  disabled={a.busy}
+                  disabled={a.busy || reviewBusy}
                   onPress={() =>
                     void a.run(async () => {
                       await api.addSongToSetlist(serviceId, s.id);

@@ -41,5 +41,8 @@ test("Hidden-player routes expose Stop during loading, empty content and AddSong
   );
   const service = read("src/screens/ServiceScreens.tsx");
   assert.match(service, /metronome && \(player.playing \|\| player.starting\)/);
-  assert.match(service, /usePreventRemove\(!!raw.trim\(\) \|\| a.busy/);
+  assert.match(
+    service,
+    /!!raw.trim\(\) \|\| reviewDirty \|\| a.busy \|\| reviewBusy/,
+  );
 });

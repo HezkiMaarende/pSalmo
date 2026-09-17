@@ -27,7 +27,7 @@ Use an Expo development build rather than Expo Go once the click-device module i
 
 1. Create a Supabase project and enable email authentication.
 2. Copy `.env.example` to `.env`, then set the public project URL, publishable key, and `EXPO_PUBLIC_CHURCH_TEAM_ID`. Restart Metro after configuration changes. Environment values prefixed `EXPO_PUBLIC_` are public, not credentials.
-3. Apply every SQL file in `supabase/migrations` in timestamp order through the Supabase CLI or SQL editor. All migrations through `202609160017_exact_account_linking.sql` are applied to project `uhyxiflkahqqutnkvash`.
+3. Apply every SQL file in `supabase/migrations` in timestamp order through the Supabase CLI or SQL editor. All migrations through `202609170020_reviewed_song_batch.sql` are applied to project `uhyxiflkahqqutnkvash`.
 4. For this deployment only, `supabase/provision-church.sql` bootstraps the clean church using the existing prototype owner's account. It returns the generated church ID for environment configuration, copies no content, and is idempotent. For another deployment, provision its actual owner instead of assuming a `sounday` prototype exists.
 
 The migration creates profiles from `auth.users`, makes each team creator an owner, enables RLS on every application table, and deliberately keeps service-role credentials out of the mobile app.
@@ -41,6 +41,10 @@ Song Bank stores canonical sectioned plain lyrics, key/BPM/birama, attribution, 
 Video is mounted only when expanded, requires a user gesture, never autoplays, and retains an external-link fallback. The WebView supplies application identification as required by [YouTube's embedded-player guidance](https://developers.google.com/youtube/terms/required-minimum-functionality#embedded-player-api-client-identity). Pengumuman and Peraturan remain placeholders. Profil edits the greeting name and supports sign-out.
 
 Latihan has separate Edit/Play modes, service-specific BPM/birama/notes, tap tempo, beat indicators and Start/Stop/Next. Native click playback requires the installed pSalmo development app, not Expo Go. On Windows, `npm run build:android` uses a fresh short physical source copy under TEMP to avoid Ninja's path-length limit, then copies a successful arm64 debug APK back into ignored `artifacts/`; `npm run start:dev` serves it from the original repository. `-PrepareOnly` checks staging/dependencies/native generation without compilation or installation. Use `npm run start:go` for Expo Go's settings-only/UI flow. Standard `npm run android` also builds/installs natively, but does not provide the short-copy workaround. It is a **foreground-only audio spike, not validated for live service/mixer use**; background/lock playback and Android route-disconnect safety remain outstanding. Read [docs/latihan-audio.md](docs/latihan-audio.md) for counting conventions, architecture, USB installation and acceptance gates.
+
+## Local WhatsApp song review
+
+Editable services also support local WhatsApp song-list preview/review and an atomic confirmed batch, without transmitting raw messages to an AI provider. See [docs/smart-add.md](docs/smart-add.md) for limits and the separate future AI/privacy phase. Metronome acceptance remains deferred on the checklist, not completed.
 
 ## Share a private testing APK
 

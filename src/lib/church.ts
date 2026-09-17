@@ -8,6 +8,7 @@ import type {
 import { youtubeId } from "../domain/youtube";
 import { defaultMeter } from "../domain/metronome";
 import { requiredSongTitle } from "../domain/songLabel";
+import type { ReviewedSongEntry } from "../domain/songReview";
 export const CHURCH_NAME = "GPdI Elshaddai Magelang";
 export const churchId = process.env.EXPO_PUBLIC_CHURCH_TEAM_ID || "";
 export interface Membership {
@@ -495,6 +496,17 @@ export async function moveSetlistItem(
     item_id: id,
     move_direction: direction,
     expected_revision: revision,
+  });
+}
+export async function addReviewedSongs(
+  serviceId: string,
+  revision: number,
+  entries: ReviewedSongEntry[],
+): Promise<void> {
+  await rpc("append_reviewed_service_songs", {
+    target_service_id: serviceId,
+    expected_revision: revision,
+    reviewed_entries: entries,
   });
 }
 export function parseStructure(text: string): SongStructureSection[] {

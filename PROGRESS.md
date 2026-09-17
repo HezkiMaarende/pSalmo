@@ -13,6 +13,25 @@ Last updated: 17 September 2026
 
 ## This iteration
 
+### Smart Add first subphase — local text review · 17 September
+
+- [x] User defers metronome testing to keep feature implementation moving. It remains an open checklist, not an acceptance claim or pilot approval.
+- [x] Add provider-neutral WhatsApp song-list preview/review within both regular and Metronome Add flows. Preview uses reads only; raw text stays in memory, with no external provider, permanent storage or extraction job. Show every nonempty line for review, edit/skip candidates, preserve order/repeats and distinguish unique exact Song Bank matches from ambiguous artist choices.
+- [x] Explicit confirmation sends one reviewed batch. New invoker/RLS RPC `append_reviewed_service_songs` serializes append, locks the list, checks the preview revision (HTTP409 on stale data) and rolls back every insert/revision if any entry is invalid. Reuse the existing snapshot append helper; unknown titles remain service-only, with4/4 and no inferred BPM. No canonical song promotion or audio algorithm change.
+- [x] Migration `202609170020_reviewed_song_batch.sql` applied to the connected Supabase project. Both the new atomic-batch fixtures and full existing weekly-workflow fixtures pass and roll back synthetic data. The first new kick fixture used a deliberately unsupported direct membership delete; corrected it to the guarded kick RPC, then the denied-kicked test passed. No real content was changed by tests.
+- [x] TypeScript and all53 tests pass. New tests cover list markers/bounds, repeated and untrusted lines, exact/ambiguous matching, selected payloads, no preview writes, explicit confirmation, pending/external busy controls, denied preview and failed commit retaining draft without retry.
+- [x] Android JavaScript export passes (`--no-bytecode --max-workers 1`):1005 modules,1.99MB. No native dependency/config changes or APK rebuild required for development-client reload; a previously built standalone preview must be rebuilt to include the feature. CI is checked on the published commit separately.
+- [ ] Phone acceptance: paste/keyboard/large-font rendering, skip/edit/matching, confirm/cancel/discard/Back, memory-only draft during refresh and concurrent stale review. No APK or native acceptance claimed for this subphase.
+- [ ] AI/server Smart Add: provider evaluation, consent/privacy, guarded/rate-limited Edge Function, encrypted30-day raw input, expiring one-time jobs, PDF/DOCX and medley parsing still require their separate decisions/implementation. See `docs/smart-add.md`.
+
+### Metronome validation — deferred checklist, not a blocker to feature work
+
+- [ ] Verify actual Hermes runtime and collect native diagnostics.
+- [ ] Exercise Play/Stop/Next, pending Stop, tab/back, interruptions and ≥5minute background/screen-lock continuity on the rebuilt app.
+- [ ] Record30-minute click timing/drift, Start latency and memory/sample-rate evidence.
+- [ ] Implement and hardware-test Android route-disconnect protection and the actual wired/USB/mixer/IEM chain before live use.
+- [ ] Complete device theme/draft/lifecycle acceptance and standalone preview launch with Metro disconnected. Detailed steps stay in `docs/device-validation.md`; audible clicks/theme feedback do not close these gates.
+
 ### Setlist is the edit page — 17 September
 
 - [x] Add the requested meter popup instead of free typing: 36 options, numerator1–12 and denominators2/4/8, from1/2 to12/8. Reuse the selector in Setlist, service arrangements and Song Bank. Highlight the current value; selection closes the popup; Cancel/Android Back/backdrop do not modify it. Preserve old13-beat/16th meters unless explicitly replaced, with a visible explanation; optional library/arrangement values can be explicitly cleared.
@@ -210,9 +229,9 @@ Phase 5 automated checkpoint:
 
 ## Next objectives and carried research
 
-1. **Device acceptance first:** use `docs/device-validation.md`, verify native/Hermes, then triage actual church preparation feedback.
+1. **Smart Add feature work first (user-selected):** local review/atomic commit implemented above; next decide provider/consent and evaluate de-identified fixtures before the AI/server phase. Keep metronome acceptance deferred on the open checklist, not on the critical path for unrelated feature work.
 2. **Roster import research:** confirm the church's real CSV columns, role names, family/group entries, multiple names per role, account matching, and how schedules are approved. Manual entry stays the first implementation; do not invent/import a CSV format yet.
-3. **Audio validation next:** Frozen Ape Tempo reference confirmed; Latihan Edit/Play foreground-only spike is implemented. Build/launch native/Hermes, implement Android route safety, confirm actual phone/mixer/IEM chain, and measure audio-clock timing before background/lock playback or live use. Custom accents, dotted beats, subdivisions/count-in and other Tempo extras wait for rehearsal feedback.
-4. **Smart Add:** decide provider/consent and de-identified fixtures; implement review-gated WhatsApp extraction/matching without silently creating library songs. Carry encrypted expiring job requirements forward.
+3. **Audio validation deferred:** Frozen Ape Tempo reference confirmed; merged Setlist editor/Practice and app-wide background implementation exist. Runtime/Hermes, real background/lock acceptance, native Android route protection and actual phone/mixer/IEM timing still need evidence before live use. Custom accents, subdivisions/count-in and other Tempo extras wait for rehearsal feedback.
+4. **Smart Add follow-through:** complete the future AI/server subphase in `docs/smart-add.md`, without silently creating library songs. Carry encrypted expiring one-time job requirements forward.
 5. **Medleys and licensing:** medley grouping remains deferred; confirm lyrics licensing/attribution and CCLI before wider rollout (attribution fields exist but do not establish a licence).
 6. **Offline and pilot:** upcoming-service prefetch/read-only offline mode, actual background/hardware reliability testing, then a real team pilot.

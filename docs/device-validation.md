@@ -6,6 +6,17 @@ The 16 September five-page implementation has passed TypeScript, pure-domain tes
 
 ## Prepare
 
+Metronome/runtime/timing/IEM checks are **deferred at the user's request** while unrelated feature work continues. Keep them unchecked; they still gate live playback/pilot readiness.
+
+## Local WhatsApp song review
+
+- [ ] From regular Ibadah Add and Metronome Add, paste a numbered list, review all lines, edit/skip headers and deliberately repeated songs, choose ambiguous artists and confirm/cancel.
+- [ ] Preview writes nothing; unmatched songs remain service-only; canonical matches copy defaults/lyrics/references and preserve existing birama. No BPM/key is inferred from chat.
+- [ ] Two editors preview the same revision; one commit succeeds and the second requests a fresh preview. Invalid/foreign songs cannot partially add a batch.
+- [ ] Dirty Back/discard/cancel, keyboard/font scaling, both themes and background/foreground access refresh preserve a memory-only draft. Revoked access prevents confirmation.
+
+## Prepare the metronome pass later
+
 Background-click revision (17 September): rebuild/install the development APK before testing. Start one song, switch tabs/back, open another app and lock for five minutes; clicks should continue. Stop from the global bar and media notification/lock screen; no automatic restart. Test notification-permission denial, rapid Start/Stop/replacement, access revocation on foreground return, sign-out and competing audio. Native device verification is outstanding; swipe-away/force-stop survival is unsupported.
 
 1. Set all three public `.env` values, including the provisioned church workspace ID, then restart Metro (`npm start`). No privileged keys belong in the app.

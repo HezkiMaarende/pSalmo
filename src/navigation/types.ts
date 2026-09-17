@@ -2,6 +2,7 @@ export type Routes = {
   Home: undefined;
   Schedule: undefined;
   Library: undefined;
+  LibraryImport: undefined;
   Announcements: undefined;
   Profile: undefined;
   Week: { day: string };

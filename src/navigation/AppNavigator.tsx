@@ -30,6 +30,7 @@ import {
   TargetsScreen,
 } from "../screens/LibraryScreens";
 import { PeopleScreen } from "../screens/PeopleScreen";
+import { LibraryImportScreen } from "../screens/LibraryImportScreen";
 import { PracticeScreen } from "../screens/PracticeScreen";
 import {
   ProfileScreen,
@@ -107,6 +108,11 @@ function PageStack({
         name="Song"
         component={SongScreen}
         options={{ title: "Lagu" }}
+      />
+      <Stack.Screen
+        name="LibraryImport"
+        component={LibraryImportScreen}
+        options={{ title: "Import ProPresenter" }}
       />
       <Stack.Screen
         name="SongEdit"

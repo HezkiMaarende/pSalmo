@@ -76,6 +76,8 @@ try {
   } finally { Pop-Location }
   $taskApk = Join-Path $taskNativeRoot "android\app\build\outputs\apk\$taskBuildType\app-$taskBuildType.apk"
   if (!(Test-Path -LiteralPath $taskApk)) { throw 'Gradle returned without the expected APK.' }
+  & powershell.exe -NoProfile -File scripts/verify-storage-permissions.ps1 -ApkPath $taskApk -SdkPath $taskSdk
+  if ($LASTEXITCODE -ne 0) { throw 'APK storage permission verification failed; no APK was published.' }
   if ($taskPreview) {
     & powershell.exe -NoProfile -File scripts/verify-share-apk.ps1 -ApkPath $taskApk -SdkPath $taskSdk -Architectures $taskArchitectures
     if ($LASTEXITCODE -ne 0) { throw 'Standalone APK verification failed; no shareable APK was published.' }

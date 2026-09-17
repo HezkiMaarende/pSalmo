@@ -9,6 +9,11 @@ import { youtubeId } from "../domain/youtube";
 import { defaultMeter } from "../domain/metronome";
 import { requiredSongTitle } from "../domain/songLabel";
 import type { ReviewedSongEntry } from "../domain/songReview";
+import type {
+  LibraryIdentity,
+  LibraryImportEntry,
+  LibraryImportResult,
+} from "../domain/libraryImport";
 export const CHURCH_NAME = "GPdI Elshaddai Magelang";
 export const churchId = process.env.EXPO_PUBLIC_CHURCH_TEAM_ID || "";
 export interface Membership {
@@ -43,6 +48,9 @@ export interface Song {
   writer_credits: string | null;
   copyright_notice: string | null;
   song_references: Reference[];
+  source_type?: string | null;
+  source_filename?: string | null;
+  permission_basis?: string | null;
 }
 export interface Service {
   id: string;
@@ -412,6 +420,35 @@ export async function getSong(id: string): Promise<Song> {
   ) as Song;
   song.song_references.sort((a, b) => (a.position || 0) - (b.position || 0));
   return song;
+}
+export async function listSongIdentities(): Promise<LibraryIdentity[]> {
+  const songs: LibraryIdentity[] = [];
+  // Range pagination avoids silently ignoring duplicates beyond PostgREST's
+  // row cap, without downloading lyrics/reference payloads.
+  for (let offset = 0; ; offset += 500) {
+    const rows = unwrap(
+      await supabase
+        .from("songs")
+        .select("id,title,artist")
+        .eq("team_id", churchId)
+        .order("id")
+        .range(offset, offset + 499),
+    ) as LibraryIdentity[];
+    songs.push(...rows);
+    if (rows.length < 500) return songs;
+  }
+}
+export async function importLibrarySongs(
+  batchId: string,
+  permission: string,
+  entries: LibraryImportEntry[],
+): Promise<LibraryImportResult> {
+  return (await rpc("import_library_songs", {
+    target_team_id: churchId,
+    batch_id: batchId,
+    permission_note: permission.trim(),
+    reviewed_entries: entries,
+  })) as LibraryImportResult;
 }
 export function bpmValue(value: string): number | null {
   if (!value.trim()) return null;

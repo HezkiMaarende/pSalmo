@@ -42,6 +42,12 @@ export function LibraryScreen({ navigation }: Props<"Library">) {
           onPress={() => navigation.navigate("SongEdit")}
         />
       )}
+      {editor && (
+        <Button
+          title="Import dari ProPresenter"
+          onPress={() => navigation.navigate("LibraryImport")}
+        />
+      )}
       <Feedback loading={state.loading} error={state.error} />
       {state.data && !state.data.length && (
         <Body muted>Song Bank gereja masih kosong.</Body>
@@ -85,6 +91,12 @@ export function SongScreen({ route, navigation }: Props<"Song">) {
         <>
           <Title>{song.title}</Title>
           <Body>{song.artist || "Artis belum diisi"}</Body>
+          {song.source_type === "propresenter_text" && (
+            <Body muted>Sumber: ProPresenter · {song.source_filename}</Body>
+          )}
+          {editor && song.permission_basis && (
+            <Body muted>Dasar izin: {song.permission_basis}</Body>
+          )}
           <Body muted>
             {[
               song.default_key && `Key ${song.default_key}`,

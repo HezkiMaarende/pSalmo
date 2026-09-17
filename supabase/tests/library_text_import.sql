@@ -1,0 +1,71 @@
+-- Synthetic data only. Run as postgres; every fixture is rolled back.
+begin;
+do $$ declare u uuid; t uuid; p uuid; kind text; ids jsonb:='{}'; s uuid; old_song uuid;
+begin
+  foreach kind in array array['owner','member','editor','outsider'] loop
+    u:=gen_random_uuid(); insert into auth.users(id,email,raw_user_meta_data) values(u,u::text||'@import-test.invalid','{}');
+    ids:=ids||jsonb_build_object(kind,u);
+  end loop;
+  insert into public.teams(name,created_by,admin_managed) values('Import rollback fixture',(ids->>'owner')::uuid,true) returning id into t;
+  ids:=ids||jsonb_build_object('team',t);
+  insert into public.team_memberships(team_id,user_id,song_editor) values(t,(ids->>'member')::uuid,false),(t,(ids->>'editor')::uuid,true);
+  insert into public.roster_people(team_id,name,account_id) values(t,'Editor',(ids->>'editor')::uuid) returning id into p;
+  ids:=ids||jsonb_build_object('editor_person',p);
+  insert into public.songs(team_id,title,lyrics,created_by) values(t,'Existing','Old canonical',(ids->>'owner')::uuid) returning id into old_song;
+  insert into public.song_references(song_id,label,url,position) values(old_song,'Old reference','https://youtu.be/dQw4w9WgXcQ',0);
+  insert into public.services(team_id,title,service_type,service_date,created_by) values(t,'Import snapshot','ir_1_2','2026-09-20T00:00:00+07',(ids->>'owner')::uuid) returning id into s;
+  ids:=ids||jsonb_build_object('service',s,'existing_song',old_song);
+  insert into public.teams(name,created_by) values('Import prototype fixture',(ids->>'owner')::uuid) returning id into t;
+  insert into public.songs(team_id,title,created_by) values(t,'Prototype',(ids->>'owner')::uuid) returning id into p;
+  ids:=ids||jsonb_build_object('prototype',t,'prototype_song',p);
+  perform set_config('psalmo.import_fixture',ids::text,true);
+end $$;
+set local role authenticated;
+do $$ declare ids jsonb:=current_setting('psalmo.import_fixture')::jsonb; t uuid:=(ids->>'team')::uuid; batch uuid:=gen_random_uuid();
+  base jsonb:='{"source_filename":"Lagu.txt","title":"New Song","artist":"","lyrics":"[Verse]\nTeks asli\n\n[Chorus]\nTeks diulang\nTeks diulang","writer_credits":"Writer","copyright_notice":"Copyright fixture","key":"","bpm":null,"time_signature":"4/4"}';
+  entries jsonb; response jsonb; retry jsonb; imported uuid; count_before integer;
+begin
+  assert private.library_identity(E' NEW\u00a0 SONG ')='new song', 'NBSP normalized';
+  entries:=jsonb_build_array(base,base||'{"title":" NEW   SONG ","source_filename":"Repeated.txt"}',base||'{"title":"New Song","artist":"Different Artist","key":"E","bpm":90,"time_signature":"6/8"}',base||'{"title":" existing ","lyrics":"Must not overwrite"}');
+  perform set_config('request.jwt.claim.sub',ids->>'member',true);
+  begin perform public.import_library_songs(t,batch,'Confirmed permission',entries); raise exception 'FAIL member'; exception when raise_exception then if sqlerrm='FAIL member' then raise; end if; end;
+  perform set_config('request.jwt.claim.sub',ids->>'outsider',true);
+  begin perform public.import_library_songs(t,batch,'Confirmed permission',entries); raise exception 'FAIL outsider'; exception when raise_exception then if sqlerrm='FAIL outsider' then raise; end if; end;
+  perform set_config('request.jwt.claim.sub',ids->>'editor',true);
+  response:=public.import_library_songs(t,batch,'Confirmed permission',entries);
+  assert jsonb_array_length(response->'created')=2 and jsonb_array_length(response->'skipped')=2, 'normalized duplicates skipped, different artist retained';
+  imported:=(response->'created'->0->>'id')::uuid;
+  assert exists(select 1 from public.songs where id=imported and source_type='propresenter_text' and source_filename='Lagu.txt' and permission_basis='Confirmed permission' and default_time_signature='4/4' and default_bpm is null and default_key is null and lyrics=base->>'lyrics' and writer_credits='Writer'), 'provenance, defaults and repeated lyrics preserved';
+  assert exists(select 1 from public.songs where title='New Song' and artist='Different Artist' and default_bpm=90 and default_key='E' and default_time_signature='6/8'), 'explicit settings preserved';
+  assert exists(select 1 from public.songs where id=(ids->>'existing_song')::uuid and lyrics='Old canonical' and source_type is null), 'existing song untouched';
+  assert exists(select 1 from public.song_references where song_id=(ids->>'existing_song')::uuid and label='Old reference'), 'existing references untouched';
+  select count(*) into count_before from public.songs where team_id=t;
+  retry:=public.import_library_songs(t,batch,'Confirmed permission',entries);
+  assert retry=response and (select count(*) from public.songs where team_id=t)=count_before, 'identical retry returns original receipt';
+  begin perform public.import_library_songs(t,batch,'Changed permission',entries); raise exception 'FAIL changed batch'; exception when sqlstate 'PT409' then null; end;
+  begin perform public.import_library_songs(t,gen_random_uuid(),'Permission',jsonb_build_array(base||'{"title":"Should rollback"}',base||'{"title":"Invalid","bpm":19}')); raise exception 'FAIL invalid batch'; exception when raise_exception then if sqlerrm='FAIL invalid batch' then raise; end if; end;
+  assert not exists(select 1 from public.songs where team_id=t and title='Should rollback'), 'invalid row rolls back whole batch';
+  begin perform public.import_library_songs(t,gen_random_uuid(),' ',jsonb_build_array(base)); raise exception 'FAIL permission'; exception when raise_exception then if sqlerrm='FAIL permission' then raise; end if; end;
+  begin perform public.import_library_songs(t,gen_random_uuid(),'Permission',jsonb_build_array(base||'{"source_filename":"../bad.txt"}')); raise exception 'FAIL filename'; exception when raise_exception then if sqlerrm='FAIL filename' then raise; end if; end;
+  begin insert into public.songs(team_id,title,created_by) values(t,' NEW SONG ',auth.uid()); raise exception 'FAIL direct duplicate'; exception when sqlstate 'PT409' then null; end;
+  -- Permanent editor needs no service duty to import, but cannot append to it.
+  begin perform public.append_service_songs((ids->>'service')::uuid,canonical_song_id=>imported); raise exception 'FAIL off-duty append'; exception when raise_exception then if sqlerrm='FAIL off-duty append' then raise; end if; end;
+  perform set_config('request.jwt.claim.sub',ids->>'owner',true);
+  perform public.append_service_songs((ids->>'service')::uuid,canonical_song_id=>imported);
+  perform public.save_library_song(t,imported,base||'{"lyrics":"Changed canonical"}','[]');
+  assert exists(select 1 from public.setlist_items where song_id=imported and lyrics_or_chords=base->>'lyrics' and time_signature='4/4' and bpm is null), 'imported service snapshot independent';
+  assert exists(select 1 from public.songs where id=imported and permission_basis='Confirmed permission'), 'later canonical edit preserves provenance';
+  begin perform public.import_library_songs((ids->>'prototype')::uuid,gen_random_uuid(),'Permission',jsonb_build_array(base)); raise exception 'FAIL prototype import'; exception when raise_exception then if sqlerrm='FAIL prototype import' then raise; end if; end;
+  assert exists(select 1 from public.songs where id=(ids->>'prototype_song')::uuid and lyrics='' and source_type is null and default_time_signature is null), 'prototype unchanged';
+  perform public.kick_roster_person((ids->>'editor_person')::uuid);
+  perform set_config('request.jwt.claim.sub',ids->>'editor',true);
+  begin perform public.import_library_songs(t,batch,'Confirmed permission',entries); raise exception 'FAIL kicked retry'; exception when raise_exception then if sqlerrm='FAIL kicked retry' then raise; end if; end;
+  perform set_config('psalmo.import_batch',batch::text,true);
+end $$;
+reset role;
+do $$ declare ids jsonb:=current_setting('psalmo.import_fixture')::jsonb; begin
+  assert (select count(*) from private.library_import_receipts where team_id=(ids->>'team')::uuid)=1, 'failed batches create no receipt';
+  assert not has_table_privilege('authenticated','private.library_import_receipts','SELECT'), 'private receipt inaccessible';
+end $$;
+select 'PASS: permission/church guards, duplicate normalization, create-only import, atomic validation, idempotent/altered retries, defaults/attribution/provenance, snapshot independence and kicked replay denial; fixtures rolled back' as result;
+rollback;

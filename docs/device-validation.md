@@ -8,6 +8,14 @@ The 16 September five-page implementation has passed TypeScript, pure-domain tes
 
 Metronome/runtime/timing/IEM checks are **deferred at the user's request** while unrelated feature work continues. Keep them unchecked; they still gate live playback/pilot readiness.
 
+## ProPresenter Song Bank import
+
+- [ ] Install the rebuilt APK; choose/cancel text files from Android file providers without broad storage access. Source files remain unchanged; importer cache cleanup works.
+- [ ] Trial5–10 actual church songs: verify title/artis/lirik, headings/repeated choruses, attribution/permission,4/4 defaults and explicit key/BPM/meter.
+- [ ] Skip duplicate/existing candidates; edit/skipped states, keyboard/font scaling, both themes, permission note and confirm/cancel/Back work.
+- [ ] Simulate response loss and retry the frozen UUID/payload; no duplicate creation. Abandoning an uncertain request warns correctly; revoked access prevents commit/replay.
+- [ ] Created-song links/results work. Service copies preserve defaults/lyrics/references, and canonical edits leave service snapshots unchanged.
+
 ## Local WhatsApp song review
 
 - [ ] From regular Ibadah Add and Metronome Add, paste a numbered list, review all lines, edit/skip headers and deliberately repeated songs, choose ambiguous artists and confirm/cancel.

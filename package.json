@@ -14,7 +14,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "tsc src/domain/calendar.ts src/domain/youtube.ts src/domain/weekly.ts src/domain/metronome.ts src/domain/playback.ts src/domain/songLabel.ts src/domain/theme.ts src/domain/songReview.ts --module commonjs --target es2020 --skipLibCheck --outDir .test-build && node --test --test-isolation=none tests/*.test.cjs"
+    "test": "tsc src/domain/calendar.ts src/domain/youtube.ts src/domain/weekly.ts src/domain/metronome.ts src/domain/playback.ts src/domain/songLabel.ts src/domain/theme.ts src/domain/songReview.ts src/domain/libraryImport.ts --module commonjs --target es2020 --skipLibCheck --outDir .test-build && node --test --test-isolation=none tests/*.test.cjs"
   },
   "dependencies": {
     "@noble/ciphers": "2.4.0",
@@ -26,6 +26,8 @@
     "expo": "~54.0.0",
     "expo-crypto": "15.0.9",
     "expo-dev-client": "~6.0.21",
+    "expo-document-picker": "~14.0.8",
+    "expo-file-system": "~19.0.24",
     "expo-secure-store": "15.0.8",
     "expo-status-bar": "~3.0.8",
     "expo-system-ui": "~6.0.9",

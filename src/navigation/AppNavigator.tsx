@@ -1,11 +1,16 @@
 import React, { useEffect } from "react";
 import { Text } from "react-native";
-import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  useNavigationContainerRef,
+  DarkTheme,
+  DefaultTheme,
+} from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Routes, RootRoutes } from "./types";
 import { useNavigationChrome } from "../context/NavigationChromeContext";
-import { colors } from "../components/ui";
+import { useTheme } from "../context/ThemeContext";
 import {
   HomeScreen,
   ScheduleScreen,
@@ -39,12 +44,16 @@ function PageStack({
 }: {
   initial: "Home" | "Schedule" | "Library" | "Announcements" | "Profile";
 }) {
+  const { colors, mode } = useTheme();
   return (
     <Stack.Navigator
       initialRouteName={initial}
       screenOptions={{
-        headerStyle: { backgroundColor: colors.teal },
-        headerTintColor: "#fff",
+        headerStyle: {
+          backgroundColor: mode === "dark" ? colors.surface : colors.teal,
+        },
+        headerTintColor: mode === "dark" ? colors.ink : colors.onAccent,
+        statusBarStyle: "light",
         contentStyle: { backgroundColor: colors.background },
         headerBackTitle: "Kembali",
       }}
@@ -143,53 +152,101 @@ function ProfileStack() {
   return <PageStack initial="Profile" />;
 }
 function MainTabs() {
+  const { colors } = useTheme();
   return (
-      <Tabs.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarActiveTintColor: colors.teal,
-          tabBarInactiveTintColor: colors.muted,
-          tabBarStyle: { minHeight: 66, paddingTop: 5 },
-          tabBarLabelStyle: { fontSize: 11 },
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 22 }}>
-              {
-                (
-                  {
-                    Beranda: "⌂",
-                    Jadwal: "▦",
-                    "Song Bank": "♫",
-                    Pengumuman: "◇",
-                    Profil: "○",
-                  } as Record<string, string>
-                )[route.name]
-              }
-            </Text>
-          ),
-        })}
-      >
-        <Tabs.Screen name="Beranda" component={HomeStack} />
-        <Tabs.Screen name="Jadwal" component={ScheduleStack} />
-        <Tabs.Screen name="Song Bank" component={LibraryStack} />
-        <Tabs.Screen name="Pengumuman" component={AnnouncementsStack} />
-        <Tabs.Screen name="Profil" component={ProfileStack} />
-      </Tabs.Navigator>
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: colors.teal,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: {
+          minHeight: 66,
+          paddingTop: 5,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
+        tabBarLabelStyle: { fontSize: 11 },
+        tabBarIcon: ({ color }) => (
+          <Text style={{ color, fontSize: 22 }}>
+            {
+              (
+                {
+                  Beranda: "⌂",
+                  Jadwal: "▦",
+                  "Song Bank": "♫",
+                  Pengumuman: "◇",
+                  Profil: "○",
+                } as Record<string, string>
+              )[route.name]
+            }
+          </Text>
+        ),
+      })}
+    >
+      <Tabs.Screen name="Beranda" component={HomeStack} />
+      <Tabs.Screen name="Jadwal" component={ScheduleStack} />
+      <Tabs.Screen name="Song Bank" component={LibraryStack} />
+      <Tabs.Screen name="Pengumuman" component={AnnouncementsStack} />
+      <Tabs.Screen name="Profil" component={ProfileStack} />
+    </Tabs.Navigator>
   );
 }
 export function AppNavigator() {
+  const { colors, mode } = useTheme();
+  const baseTheme = mode === "dark" ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      primary: colors.teal,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.ink,
+      border: colors.border,
+      notification: colors.teal,
+    },
+  };
   const nav = useNavigationContainerRef<RootRoutes>();
   const { setMetronomeActive } = useNavigationChrome();
   const updateChrome = () => {
     const state = nav.getRootState();
-    setMetronomeActive(!!state && state.routes[state.index].name !== "MainTabs");
+    setMetronomeActive(
+      !!state && state.routes[state.index].name !== "MainTabs",
+    );
   };
   useEffect(() => () => setMetronomeActive(false), [setMetronomeActive]);
   return (
-    <NavigationContainer ref={nav} onReady={updateChrome} onStateChange={updateChrome}>
-      <RootStack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.teal }, headerTintColor: "#fff", contentStyle: { backgroundColor: colors.background } }}>
-        <RootStack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-        <RootStack.Screen name="Practice" component={PracticeScreen} options={{ title: "Metronome", headerBackTitle: "Kembali" }} />
-        <RootStack.Screen name="MetronomeAddSongs" component={MetronomeAddSongsScreen} options={{ title: "Tambah lagu" }} />
+    <NavigationContainer
+      theme={navigationTheme}
+      ref={nav}
+      onReady={updateChrome}
+      onStateChange={updateChrome}
+    >
+      <RootStack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: mode === "dark" ? colors.surface : colors.teal,
+          },
+          headerTintColor: mode === "dark" ? colors.ink : colors.onAccent,
+          statusBarStyle: "light",
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <RootStack.Screen
+          name="MainTabs"
+          component={MainTabs}
+          options={{ headerShown: false }}
+        />
+        <RootStack.Screen
+          name="Practice"
+          component={PracticeScreen}
+          options={{ title: "Metronome", headerBackTitle: "Kembali" }}
+        />
+        <RootStack.Screen
+          name="MetronomeAddSongs"
+          component={MetronomeAddSongsScreen}
+          options={{ title: "Tambah lagu" }}
+        />
       </RootStack.Navigator>
     </NavigationContainer>
   );

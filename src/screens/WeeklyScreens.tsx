@@ -20,12 +20,13 @@ import {
   Body,
   Button,
   Feedback,
-  styles,
+  useUi,
   useLoad,
   useAction,
 } from "../components/ui";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 export function Roster({ rows }: { rows: api.RosterRow[] }) {
+  const { styles } = useUi();
   const grouped = new Map<string, string[]>();
   rows.forEach((r) =>
     grouped.set(r.role_name, [
@@ -46,6 +47,7 @@ export function Roster({ rows }: { rows: api.RosterRow[] }) {
   );
 }
 export function HomeScreen({ navigation }: Props<"Home">) {
+  const { colors } = useUi();
   const church = useChurch();
   const admin = church.membership?.role !== "member";
   const [drawer, setDrawer] = useState(false);
@@ -146,7 +148,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
             style={{
               width: "80%",
               maxWidth: 340,
-              backgroundColor: "white",
+              backgroundColor: colors.surface,
               padding: 24,
               paddingTop: 54,
               gap: 16,
@@ -199,6 +201,7 @@ export function MonthControl({
   month: string;
   setMonth: (s: string) => void;
 }) {
+  const { styles } = useUi();
   return (
     <View style={styles.row}>
       <Button title="‹ Bulan" onPress={() => setMonth(shiftMonth(month, -1))} />

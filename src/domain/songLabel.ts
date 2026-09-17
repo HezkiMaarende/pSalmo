@@ -1,4 +1,7 @@
-export function songLabel(title: string | null | undefined, key: string | null | undefined): string {
+export function songLabel(
+  title: string | null | undefined,
+  key: string | null | undefined,
+): string {
   const name = title?.trim() || "Lagu";
   const tone = key?.trim();
   return tone ? `${name} - ${tone}` : name;

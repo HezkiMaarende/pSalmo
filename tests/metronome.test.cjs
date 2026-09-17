@@ -60,10 +60,15 @@ test("Missing/invalid click settings are rejected; compound meters explicitly co
 });
 
 test("Missing meters default to 4/4 without replacing existing or legacy meters", () => {
-  for (const meter of [null, undefined, "", "  "]) assert.equal(defaultMeter(meter), "4/4");
+  for (const meter of [null, undefined, "", "  "])
+    assert.equal(defaultMeter(meter), "4/4");
   assert.equal(defaultMeter(" 6/8 "), "6/8");
   assert.equal(defaultMeter("13/16"), "13/16");
-  assert.deepEqual(clickSettings(100, null), { bpm: 100, beats: 4, denominator: 4 });
+  assert.deepEqual(clickSettings(100, null), {
+    bpm: 100,
+    beats: 4,
+    denominator: 4,
+  });
   assert.throws(() => clickSettings(null, null));
 });
 

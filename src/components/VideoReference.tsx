@@ -3,8 +3,9 @@ import { View, Platform } from "react-native";
 import { WebView } from "react-native-webview";
 import appConfig from "../../app.json";
 import { youtubeId } from "../domain/youtube";
-import { Body, Button, Feedback, openLink, useAction } from "./ui";
+import { Body, Button, Feedback, openLink, useAction, useUi } from "./ui";
 export function VideoReference({ label, url }: { label: string; url: string }) {
+  const { colors } = useUi();
   const [expanded, setExpanded] = useState(false);
   const [failed, setFailed] = useState(false);
   const action = useAction();
@@ -19,7 +20,7 @@ export function VideoReference({ label, url }: { label: string; url: string }) {
         <>
           {id && !failed && Platform.OS !== "web" ? (
             <WebView
-              style={{ height: 220, backgroundColor: "#eef3f5" }}
+              style={{ height: 220, backgroundColor: colors.surface }}
               source={{
                 uri: `https://www.youtube.com/embed/${id}?autoplay=0&playsinline=1`,
                 headers: {

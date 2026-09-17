@@ -9,7 +9,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { defaultMeter, timeSignatureOptions } from "../domain/metronome";
-import { Body, Button, colors, styles } from "./ui";
+import { Body, Button, useUi } from "./ui";
+import { ThemeColors } from "../domain/theme";
 
 export function TimeSignaturePicker({
   label = "Birama",
@@ -22,6 +23,8 @@ export function TimeSignaturePicker({
   onChange(value: string): void;
   disabled?: boolean;
 }) {
+  const { colors, styles } = useUi();
+  const s = createStyles(colors);
   const [open, setOpen] = useState(false);
   const { height } = useWindowDimensions();
   const close = () => setOpen(false);
@@ -87,7 +90,7 @@ export function TimeSignaturePicker({
                   <Text
                     style={[
                       s.optionText,
-                      signature === value && { color: "white" },
+                      signature === value && { color: colors.onAccent },
                     ]}
                   >
                     {signature}
@@ -102,47 +105,48 @@ export function TimeSignaturePicker({
     </View>
   );
 }
-const s = StyleSheet.create({
-  trigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  arrow: { color: colors.teal, fontSize: 22 },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dialog: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: colors.background,
-    borderRadius: 18,
-    padding: 16,
-    gap: 12,
-  },
-  options: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 8,
-    paddingVertical: 4,
-  },
-  option: {
-    width: "30%",
-    minHeight: 48,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  selected: { backgroundColor: colors.teal, borderColor: colors.teal },
-  optionText: { color: colors.ink, fontSize: 18, fontWeight: "700" },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    trigger: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    },
+    arrow: { color: colors.teal, fontSize: 22 },
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      padding: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dialog: {
+      width: "100%",
+      maxWidth: 420,
+      backgroundColor: colors.background,
+      borderRadius: 18,
+      padding: 16,
+      gap: 12,
+    },
+    options: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      gap: 8,
+      paddingVertical: 4,
+    },
+    option: {
+      width: "30%",
+      minHeight: 48,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingVertical: 10,
+    },
+    selected: { backgroundColor: colors.teal, borderColor: colors.teal },
+    optionText: { color: colors.ink, fontSize: 18, fontWeight: "700" },
+  });

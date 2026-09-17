@@ -13,7 +13,7 @@ import {
   Button,
   Field,
   Feedback,
-  styles,
+  useUi,
   useLoad,
   useAction,
   openLink,
@@ -26,6 +26,7 @@ import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 export function ServiceScreen({ route, navigation }: Props<"Service">) {
+  const { styles } = useUi();
   const { id } = route.params;
   const church = useChurch();
   const admin = church.membership?.role !== "member";
@@ -174,6 +175,7 @@ function RosterEditor({
   detail: api.ServiceDetail;
   reload: () => Promise<void>;
 }) {
+  const { styles } = useUi();
   const [editing, setEditing] = useState(false);
   const [role, setRole] = useState("WL");
   const [guest, setGuest] = useState("");
@@ -269,6 +271,7 @@ function SongRow({
   reload: () => Promise<void>;
   edit: () => void;
 }) {
+  const { styles } = useUi();
   const [expanded, setExpanded] = useState(false);
   const action = useAction();
   return (
@@ -523,7 +526,9 @@ function ArrangementForm({
 export function AddSongsScreen({ route }: Props<"AddSongs">) {
   return <AddSongsContent serviceId={route.params.serviceId} />;
 }
-export function MetronomeAddSongsScreen({ route }: NativeStackScreenProps<RootRoutes, "MetronomeAddSongs">) {
+export function MetronomeAddSongsScreen({
+  route,
+}: NativeStackScreenProps<RootRoutes, "MetronomeAddSongs">) {
   return <AddSongsContent serviceId={route.params.serviceId} />;
 }
 function AddSongsContent({ serviceId }: { serviceId: string }) {

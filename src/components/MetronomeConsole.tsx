@@ -1,4 +1,6 @@
 import React from "react";
+import { useTheme } from "../context/ThemeContext";
+import { ThemeColors } from "../domain/theme";
 import {
   Alert,
   Pressable,
@@ -37,6 +39,7 @@ type Props = {
 // A single controlled view: Setlist includes authorized editing; Practice is
 // playback-only. All switches use the parent's dirty/save and audio safeguards.
 export function MetronomeConsole(props: Props) {
+  const s = useConsoleStyles();
   const { detail, item, index, settings, beat, playing, starting, view, busy } =
     props;
   const setlist = view === "setlist";
@@ -125,7 +128,9 @@ export function MetronomeConsole(props: Props) {
           onPress={() => props.onView("practice")}
         />
       </View>
-      {setlist && running && <IconButton label="Stop metronome" icon="■" onPress={props.onStop} />}
+      {setlist && running && (
+        <IconButton label="Stop metronome" icon="■" onPress={props.onStop} />
+      )}
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
@@ -281,6 +286,7 @@ function IconButton({
   disabled?: boolean;
   selected?: boolean;
 }) {
+  const s = useConsoleStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -310,6 +316,7 @@ function Tab({
   onPress(): void;
   disabled?: boolean;
 }) {
+  const s = useConsoleStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -335,6 +342,7 @@ function Transport({
   disabled: boolean;
   large?: boolean;
 }) {
+  const s = useConsoleStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -356,195 +364,206 @@ function Transport({
   );
 }
 
-const orange = "#ff9b45";
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#192026" },
-  top: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  logo: {
-    flex: 1,
-    color: orange,
-    fontSize: 20,
-    fontWeight: "800",
-    textAlign: "center",
-    letterSpacing: 1.5,
-  },
-  iconButton: {
-    minWidth: 48,
-    minHeight: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-  },
-  iconSelected: { backgroundColor: "#35302a" },
-  icon: { color: orange, fontSize: 28, fontWeight: "600" },
-  visualizer: { paddingHorizontal: 20, paddingBottom: 14, gap: 16 },
-  beats: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  beat: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: "#52504a",
-    backgroundColor: "#302d28",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  accent: { borderColor: orange },
-  lit: {
-    backgroundColor: orange,
-    borderColor: "#ffd6b3",
-    elevation: 6,
-    shadowColor: orange,
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  beatText: { color: "#c6b59e", fontSize: 22, fontWeight: "700" },
-  litText: { color: "#352012" },
-  status: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.3,
-    color: "#b7c1c9",
-  },
-  value: { fontSize: 17, lineHeight: 26, color: "#f5f7fa", fontWeight: "600" },
-  statusMeter: { color: orange, fontSize: 24, fontWeight: "700" },
-  switches: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 16,
-    gap: 8,
-    paddingBottom: 10,
-  },
-  tab: {
-    minHeight: 48,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    justifyContent: "center",
-    borderRadius: 10,
-    backgroundColor: "#252f38",
-  },
-  tabSelected: { backgroundColor: "#3b3025" },
-  tabText: { color: "#d8e0e6", fontSize: 15, fontWeight: "600" },
-  scroll: { flex: 1 },
-  content: { paddingBottom: 20 },
-  setlistHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#36414b",
-    minHeight: 60,
-  },
-  setlistTitle: {
-    flex: 1,
-    color: "#e4eaf0",
-    fontSize: 18,
-    fontWeight: "700",
-    paddingVertical: 12,
-  },
-  track: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 72,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderColor: "#303b45",
-    borderLeftWidth: 3,
-    borderLeftColor: "transparent",
-  },
-  selectedTrack: { backgroundColor: "#342b23", borderLeftColor: orange },
-  trackNumber: { color: "#b7c1c9", fontSize: 16 },
-  trackTitle: {
-    flex: 1,
-    color: "#edf1f5",
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: "600",
-  },
-  selectedTitle: { color: orange },
-  trackSettings: { alignItems: "flex-end", gap: 3 },
-  trackBpm: { color: "#eef3f8", fontSize: 17, fontWeight: "700" },
-  small: { fontSize: 11, fontWeight: "400" },
-  activeSong: { padding: 20, gap: 8 },
-  songTitle: { color: "#ffffff", fontSize: 25, fontWeight: "700" },
-  tempo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingVertical: 4,
-  },
-  bpm: { color: orange, fontSize: 64, fontWeight: "800" },
-  muted: { color: "#b7c1c9", fontSize: 14, lineHeight: 21 },
-  notes: { color: "#e1e7ed", fontSize: 16, lineHeight: 24 },
-  editor: {
-    backgroundColor: "#f4f7f8",
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    marginTop: 8,
-  },
-  feedback: {
-    backgroundColor: "#f4f7f8",
-    borderRadius: 8,
-    marginHorizontal: 16,
-  },
-  dock: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-    alignItems: "center",
-    gap: 10,
-    borderTopWidth: 1,
-    borderColor: "#36414b",
-    backgroundColor: "#151b20",
-  },
-  transport: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 24,
-  },
-  transportButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#3A3A3A",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  transportLarge: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    borderWidth: 2,
-    borderColor: orange,
-  },
-  transportIcon: { color: "white", fontSize: 30, fontWeight: "800" },
-  transportLargeIcon: { fontSize: 38 },
-  hint: { color: "#b7c1c9", fontSize: 11, textAlign: "center" },
-  disabled: { opacity: 0.4 },
-  pressed: { opacity: 0.75 },
-});
+function useConsoleStyles() {
+  const { colors } = useTheme();
+  return React.useMemo(() => createStyles(colors), [colors]);
+}
+function createStyles(colors: ThemeColors) {
+  const orange = colors.teal;
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.background },
+    top: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 8,
+    },
+    logo: {
+      flex: 1,
+      color: orange,
+      fontSize: 20,
+      fontWeight: "800",
+      textAlign: "center",
+      letterSpacing: 1.5,
+    },
+    iconButton: {
+      minWidth: 48,
+      minHeight: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+    },
+    iconSelected: { backgroundColor: colors.surface },
+    icon: { color: orange, fontSize: 28, fontWeight: "600" },
+    visualizer: { paddingHorizontal: 20, paddingBottom: 14, gap: 16 },
+    beats: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 12,
+      paddingVertical: 8,
+    },
+    beat: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      borderWidth: 2,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    accent: { borderColor: orange },
+    lit: {
+      backgroundColor: orange,
+      borderColor: colors.teal,
+      elevation: 6,
+      shadowColor: orange,
+      shadowOpacity: 0.8,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 0 },
+    },
+    beatText: { color: colors.muted, fontSize: 22, fontWeight: "700" },
+    litText: { color: colors.onAccent },
+    status: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 12,
+    },
+    label: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.3,
+      color: colors.muted,
+    },
+    value: {
+      fontSize: 17,
+      lineHeight: 26,
+      color: colors.ink,
+      fontWeight: "600",
+    },
+    statusMeter: { color: orange, fontSize: 24, fontWeight: "700" },
+    switches: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      paddingHorizontal: 16,
+      gap: 8,
+      paddingBottom: 10,
+    },
+    tab: {
+      minHeight: 48,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      justifyContent: "center",
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+    },
+    tabSelected: { backgroundColor: colors.surface },
+    tabText: { color: colors.ink, fontSize: 15, fontWeight: "600" },
+    scroll: { flex: 1 },
+    content: { paddingBottom: 20 },
+    setlistHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
+      minHeight: 60,
+    },
+    setlistTitle: {
+      flex: 1,
+      color: colors.ink,
+      fontSize: 18,
+      fontWeight: "700",
+      paddingVertical: 12,
+    },
+    track: {
+      flexDirection: "row",
+      alignItems: "center",
+      minHeight: 72,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      gap: 12,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
+      borderLeftWidth: 3,
+      borderLeftColor: "transparent",
+    },
+    selectedTrack: { backgroundColor: colors.surface, borderLeftColor: orange },
+    trackNumber: { color: colors.muted, fontSize: 16 },
+    trackTitle: {
+      flex: 1,
+      color: colors.ink,
+      fontSize: 17,
+      lineHeight: 24,
+      fontWeight: "600",
+    },
+    selectedTitle: { color: orange },
+    trackSettings: { alignItems: "flex-end", gap: 3 },
+    trackBpm: { color: colors.ink, fontSize: 17, fontWeight: "700" },
+    small: { fontSize: 11, fontWeight: "400" },
+    activeSong: { padding: 20, gap: 8 },
+    songTitle: { color: colors.ink, fontSize: 25, fontWeight: "700" },
+    tempo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 16,
+      paddingVertical: 4,
+    },
+    bpm: { color: orange, fontSize: 64, fontWeight: "800" },
+    muted: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+    notes: { color: colors.ink, fontSize: 16, lineHeight: 24 },
+    editor: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      gap: 12,
+      marginTop: 8,
+    },
+    feedback: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      marginHorizontal: 16,
+    },
+    dock: {
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 10,
+      alignItems: "center",
+      gap: 10,
+      borderTopWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    transport: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 24,
+    },
+    transportButton: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: colors.transport,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    transportLarge: {
+      width: 84,
+      height: 84,
+      borderRadius: 42,
+      borderWidth: 2,
+      borderColor: orange,
+    },
+    transportIcon: { color: "white", fontSize: 30, fontWeight: "800" },
+    transportLargeIcon: { fontSize: 38 },
+    hint: { color: colors.muted, fontSize: 11, textAlign: "center" },
+    disabled: { opacity: 0.4 },
+    pressed: { opacity: 0.75 },
+  });
+}

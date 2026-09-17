@@ -7,6 +7,7 @@ const vm = require("node:vm");
 function harness(overrides = {}) {
   const calls = [];
   const react = {
+    useMemo: (fn) => fn(),
     createElement(type, props, ...children) {
       return { type, props: { ...props, children } };
     },
@@ -41,7 +42,19 @@ function harness(overrides = {}) {
           StyleSheet: { create: (value) => value },
         };
       if (name === "./ui") return { Feedback: () => null };
-      if (name === "../domain/songLabel") return { songLabel: (title, key) => key?.trim() ? `${title} - ${key.trim()}` : title || "Lagu" };
+      if (name === "../context/ThemeContext")
+        return {
+          useTheme: () => ({
+            colors: require("../.test-build/theme").palettes[
+              overrides.themeMode || "light"
+            ],
+          }),
+        };
+      if (name === "../domain/songLabel")
+        return {
+          songLabel: (title, key) =>
+            key?.trim() ? `${title} - ${key.trim()}` : title || "Lagu",
+        };
       throw new Error(name);
     },
   });
@@ -138,6 +151,23 @@ test("Setlist keeps Stop available for an active or pending global player", () =
   assert.equal(h.find("Stop metronome").props.disabled, false);
   h.find("Stop metronome").props.onPress();
   assert.deepEqual(h.calls, ["stop"]);
+});
+test("Metronome layout and transport work in both palettes", () => {
+  const palettes = require("../.test-build/theme").palettes;
+  for (const themeMode of ["light", "dark"]) {
+    const h = harness({ view: "practice", themeMode });
+    assert.equal(
+      h.render()[0].props.style.backgroundColor,
+      palettes[themeMode].background,
+    );
+    const button = h.find("Mulai metronome");
+    assert.equal(
+      button.props.style({ pressed: false })[0].backgroundColor,
+      palettes[themeMode].transport,
+    );
+    button.props.onPress();
+    assert.deepEqual(h.calls, ["start"]);
+  }
 });
 
 test("Setlist contains authorized editing, never a separate Edit tab; Practice hides all editor controls", () => {
@@ -254,8 +284,12 @@ function pickerHarness(overrides = {}) {
               accessibilityLabel: title,
               onPress,
             }),
-          colors: {},
-          styles: {},
+          useUi: () => ({
+            colors: require("../.test-build/theme").palettes[
+              overrides.themeMode || "light"
+            ],
+            styles: {},
+          }),
         };
       throw new Error(name);
     },

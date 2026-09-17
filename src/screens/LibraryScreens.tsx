@@ -13,7 +13,7 @@ import {
   Button,
   Field,
   Feedback,
-  styles,
+  useUi,
   useLoad,
   useAction,
 } from "../components/ui";
@@ -74,6 +74,7 @@ export function LibraryScreen({ navigation }: Props<"Library">) {
   );
 }
 export function SongScreen({ route, navigation }: Props<"Song">) {
+  const { styles } = useUi();
   const state = useLoad(() => api.getSong(route.params.id), [route.params.id]);
   const editor = useLibraryEditor();
   const song = state.data;
@@ -171,6 +172,7 @@ function SongForm({
   song: api.Song | null;
   done: (id: string) => void;
 }) {
+  const { styles } = useUi();
   const [input, setInput] = useState<api.SongInput>(
     song
       ? {

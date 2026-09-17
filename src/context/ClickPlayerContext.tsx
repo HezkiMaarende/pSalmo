@@ -15,7 +15,7 @@ import { Playback } from "../domain/playback";
 import { songLabel } from "../domain/songLabel";
 import { useNavigationChrome } from "./NavigationChromeContext";
 import { createClickRun } from "../lib/clickAudio";
-import { Body, Button, colors } from "../components/ui";
+import { Body, Button, useUi } from "../components/ui";
 
 type Track = {
   serviceId: string;
@@ -174,6 +174,7 @@ export function ClickPlayerProvider({
 }
 
 export function ClickPlayerBar() {
+  const { colors } = useUi();
   const player = useClickPlayer();
   const { metronomeActive } = useNavigationChrome();
   if (metronomeActive) return null;

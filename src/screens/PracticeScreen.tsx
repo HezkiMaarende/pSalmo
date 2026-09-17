@@ -1,14 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, AppState, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MetronomeConsole } from "../components/MetronomeConsole";
 import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 import { useIsFocused, usePreventRemove } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootRoutes } from "../navigation/types";
 import * as api from "../lib/church";
-import { clickSettings, tappedBpm, ClickSettings, defaultMeter } from "../domain/metronome";
+import {
+  clickSettings,
+  tappedBpm,
+  ClickSettings,
+  defaultMeter,
+} from "../domain/metronome";
 import { useClickPlayer } from "../context/ClickPlayerContext";
 import { nativeClickAvailable, nativeClickNotice } from "../lib/clickAudio";
+import { useTheme } from "../context/ThemeContext";
 import {
   Body,
   Button,
@@ -24,12 +31,17 @@ export function PracticeScreen({
   route,
   navigation,
 }: NativeStackScreenProps<RootRoutes, "Practice">) {
+  const { colors } = useTheme();
   const [editorState, setEditorState] = useState({ dirty: false, busy: false });
   usePreventRemove(editorState.dirty || editorState.busy, ({ data }) => {
     if (editorState.busy) return;
     Alert.alert("Perubahan belum disimpan", "Kembali tanpa menyimpan?", [
       { text: "Tetap di sini", style: "cancel" },
-      { text: "Abaikan perubahan", style: "destructive", onPress: () => navigation.dispatch(data.action) },
+      {
+        text: "Abaikan perubahan",
+        style: "destructive",
+        onPress: () => navigation.dispatch(data.action),
+      },
     ]);
   });
   const state = useLoad(
@@ -37,7 +49,10 @@ export function PracticeScreen({
     [route.params.serviceId],
   );
   return (
-    <View style={{ flex: 1, backgroundColor: "#192026" }}>
+    <SafeAreaView
+      edges={["bottom"]}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <Feedback loading={state.loading} error={state.error} />
       {state.error && (
         <Button title="Coba muat ulang" onPress={() => void state.reload()} />
@@ -55,7 +70,7 @@ export function PracticeScreen({
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -235,9 +250,24 @@ function ClickEditor({
   }
   return (
     <>
-      <Field label="Judul Lagu" value={title} onChangeText={setTitle} />
-      <Field label="Key/Nada dasar (opsional)" value={key} onChangeText={setKey} />
-      <Field label="BPM (20–400)" value={bpm} onChangeText={setBpm} />
+      <Field
+        label="Judul Lagu"
+        value={title}
+        onChangeText={setTitle}
+        disabled={action.busy}
+      />
+      <Field
+        label="Key/Nada dasar (opsional)"
+        value={key}
+        onChangeText={setKey}
+        disabled={action.busy}
+      />
+      <Field
+        label="BPM (20–400)"
+        value={bpm}
+        onChangeText={setBpm}
+        disabled={action.busy}
+      />
       <Button title="Tap tempo" disabled={action.busy} onPress={tap} />
       <TimeSignaturePicker
         label="Birama"
@@ -247,6 +277,7 @@ function ClickEditor({
       />
       <Field
         label="Catatan latihan"
+        disabled={action.busy}
         value={notes}
         onChangeText={setNotes}
         multiline
@@ -257,14 +288,21 @@ function ClickEditor({
         disabled={action.busy}
         onPress={() =>
           void action.run(async () => {
-            await api.saveSetlistSettings(item.id, { title, key, bpm, signature, notes });
+            await api.saveSetlistSettings(item.id, {
+              title,
+              key,
+              bpm,
+              signature,
+              notes,
+            });
           })
         }
       />
       <Body muted>
         Pengaturan disimpan untuk aransemen ibadah ini, bukan Song Bank.
-        Perubahan key tidak mentransposisi chord secara otomatis. BPM wajib sebelum Play.
-        Practice memakai pengaturan tersimpan; simpan perubahan terlebih dahulu.
+        Perubahan key tidak mentransposisi chord secara otomatis. BPM wajib
+        sebelum Play. Practice memakai pengaturan tersimpan; simpan perubahan
+        terlebih dahulu.
       </Body>
     </>
   );

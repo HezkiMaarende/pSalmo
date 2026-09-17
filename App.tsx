@@ -19,6 +19,7 @@ import {
 } from "./src/components/ui";
 import { supabase } from "./src/lib/supabase";
 import { NavigationChromeProvider } from "./src/context/NavigationChromeContext";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 function Root() {
   const church = useChurch();
   const action = useAction();
@@ -62,17 +63,27 @@ function Root() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+function ThemedApp() {
+  const { mode, colors } = useTheme();
+  return (
+    <>
+      <StatusBar style={mode === "dark" ? "light" : "dark"} />
       <ChurchProvider>
         <ClickPlayerProvider>
           <NavigationChromeProvider>
-          <View style={{ flex: 1 }}>
-            <Root />
-            <ClickPlayerBar />
-          </View>
+            <View style={{ flex: 1, backgroundColor: colors.background }}>
+              <Root />
+              <ClickPlayerBar />
+            </View>
           </NavigationChromeProvider>
         </ClickPlayerProvider>
       </ChurchProvider>
-    </SafeAreaProvider>
+    </>
   );
 }

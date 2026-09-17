@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   AppState,
@@ -11,60 +17,67 @@ import {
   Linking,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-export const colors = {
-  teal: "#234e58",
-  background: "#f4f7f8",
-  ink: "#162f38",
-  muted: "#59717a",
-  border: "#dce5e8",
-};
-export const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 14, paddingBottom: 40 },
-  card: {
-    backgroundColor: "white",
-    borderRadius: 14,
-    padding: 16,
-    gap: 10,
-    borderColor: colors.border,
-    borderWidth: 1,
-  },
-  title: { fontSize: 23, fontWeight: "700", color: colors.ink },
-  text: { fontSize: 16, lineHeight: 24, color: colors.ink },
-  muted: { fontSize: 14, lineHeight: 21, color: colors.muted },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  field: {
-    borderColor: colors.border,
-    borderWidth: 1,
-    backgroundColor: "white",
-    borderRadius: 9,
-    padding: 12,
-    minHeight: 48,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  button: {
-    minHeight: 48,
-    borderRadius: 9,
-    backgroundColor: colors.teal,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  buttonText: { color: "white", fontSize: 15, fontWeight: "600" },
-  error: { color: "#a52a30", fontSize: 15, lineHeight: 22 },
-  divider: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 10,
-    flexDirection: "row",
-    gap: 16,
-  },
-  role: { width: 110, color: colors.muted, fontSize: 15 },
-  person: { flex: 1, fontSize: 16, fontWeight: "700", color: colors.ink },
-});
+import { useTheme } from "../context/ThemeContext";
+import { ThemeColors } from "../domain/theme";
+export function useUi() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    page: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 20, gap: 14, paddingBottom: 40 },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 16,
+      gap: 10,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    title: { fontSize: 23, fontWeight: "700", color: colors.ink },
+    text: { fontSize: 16, lineHeight: 24, color: colors.ink },
+    muted: { fontSize: 14, lineHeight: 21, color: colors.muted },
+    row: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      alignItems: "center",
+    },
+    field: {
+      borderColor: colors.border,
+      borderWidth: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 9,
+      padding: 12,
+      minHeight: 48,
+      fontSize: 16,
+      color: colors.ink,
+    },
+    button: {
+      minHeight: 48,
+      borderRadius: 9,
+      backgroundColor: colors.teal,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    buttonText: { color: colors.onAccent, fontSize: 15, fontWeight: "600" },
+    error: { color: colors.error, fontSize: 15, lineHeight: 22 },
+    divider: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingVertical: 10,
+      flexDirection: "row",
+      gap: 16,
+    },
+    role: { width: 110, color: colors.muted, fontSize: 15 },
+    person: { flex: 1, fontSize: 16, fontWeight: "700", color: colors.ink },
+  });
 export function Page({ children }: { children: React.ReactNode }) {
+  const { styles } = useUi();
   return (
     <ScrollView
       style={styles.page}
@@ -76,9 +89,11 @@ export function Page({ children }: { children: React.ReactNode }) {
   );
 }
 export function Card({ children }: { children: React.ReactNode }) {
+  const { styles } = useUi();
   return <View style={styles.card}>{children}</View>;
 }
 export function Title({ children }: { children: React.ReactNode }) {
+  const { styles } = useUi();
   return <Text style={styles.title}>{children}</Text>;
 }
 export function Body({
@@ -88,6 +103,7 @@ export function Body({
   children: React.ReactNode;
   muted?: boolean;
 }) {
+  const { styles } = useUi();
   return <Text style={muted ? styles.muted : styles.text}>{children}</Text>;
 }
 export function Button({
@@ -99,10 +115,12 @@ export function Button({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const { styles } = useUi();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={[styles.button, disabled && { opacity: 0.45 }]}
@@ -117,13 +135,17 @@ export function Field({
   onChangeText,
   multiline = false,
   secure = false,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChangeText: (s: string) => void;
   multiline?: boolean;
   secure?: boolean;
+  disabled?: boolean;
 }) {
+  const { styles, colors } = useUi();
+  const { mode } = useTheme();
   return (
     <View style={{ gap: 6 }}>
       <Body muted>{label}</Body>
@@ -134,6 +156,10 @@ export function Field({
           multiline && { minHeight: 110, textAlignVertical: "top" },
         ]}
         value={value}
+        editable={!disabled}
+        placeholderTextColor={colors.muted}
+        selectionColor={colors.teal}
+        keyboardAppearance={mode}
         onChangeText={onChangeText}
         multiline={multiline}
         secureTextEntry={secure}
@@ -220,6 +246,7 @@ export function Feedback({
   loading?: boolean;
   error?: string;
 }) {
+  const { styles, colors } = useUi();
   return (
     <>
       {loading && (

@@ -6,6 +6,8 @@ The 16 September five-page implementation has passed TypeScript, pure-domain tes
 
 ## Prepare
 
+Background-click revision (17 September): rebuild/install the development APK before testing. Start one song, switch tabs/back, open another app and lock for five minutes; clicks should continue. Stop from the global bar and media notification/lock screen; no automatic restart. Test notification-permission denial, rapid Start/Stop/replacement, access revocation on foreground return, sign-out and competing audio. Native device verification is outstanding; swipe-away/force-stop survival is unsupported.
+
 1. Set all three public `.env` values, including the provisioned church workspace ID, then restart Metro (`npm start`). No privileged keys belong in the app.
 2. Sign in as the existing owner. The new church is intentionally empty; `sounday` data is preserved but unavailable in this app's regular flow.
 3. Prepare separate owner, ordinary member, and permanent editor accounts. PIC links their exact registered emails through **Beranda → Menu → Kelola Petugas**.
@@ -28,4 +30,4 @@ The 16 September five-page implementation has passed TypeScript, pure-domain tes
 
 ## Deferred, not acceptance claims
 
-The Latihan Edit/Play baseline and foreground-only native audio spike are now implemented; use [latihan-audio.md](latihan-audio.md) for their still-open native/device gates. Offline prefetch, Smart Add extraction, CSV import, medley groups, background/route-safe audio, mixer/IEM reliability and a real church pilot remain deferred.
+The Latihan Edit/Play baseline and app-wide background-click implementation are now implemented; use [latihan-audio.md](latihan-audio.md) for their still-open rebuilt-device gates. Offline prefetch, Smart Add extraction, CSV import, medley groups, native route-safe audio, Recents/process survival, mixer/IEM reliability and a real church pilot remain deferred.

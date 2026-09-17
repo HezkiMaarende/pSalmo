@@ -13,7 +13,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "tsc src/domain/calendar.ts src/domain/youtube.ts src/domain/weekly.ts src/domain/metronome.ts src/domain/playback.ts --module commonjs --target es2020 --skipLibCheck --outDir .test-build && node --test --test-isolation=none tests/domain.test.cjs tests/metronome.test.cjs tests/native-build.test.cjs"
+    "test": "tsc src/domain/calendar.ts src/domain/youtube.ts src/domain/weekly.ts src/domain/metronome.ts src/domain/playback.ts --module commonjs --target es2020 --skipLibCheck --outDir .test-build && node --test --test-isolation=none tests/domain.test.cjs tests/metronome.test.cjs tests/native-build.test.cjs tests/click-audio.test.cjs"
   },
   "dependencies": {
     "@noble/ciphers": "2.4.0",

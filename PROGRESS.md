@@ -13,13 +13,23 @@ Last updated: 17 September 2026
 
 ## This iteration
 
+### Background click revision — 17 September
+
+- [x] Replace screen-owned transport with one authenticated app-wide player. Tab/back navigation, switching apps, and screen lock no longer stop the native PCM loop. A global Stop bar remains visible outside navigation; display-only timers pause offscreen/background.
+- [x] Enable Android media-playback foreground service, notification permission, and iOS audio background mode. Show labeled media controls before requesting audio focus; notification Stop/Pause/dismiss stops without automatic resume. No microphone permission added. Expo Go remains settings-only.
+- [x] Recheck current service access through RLS on every Start and foreground return; stop on account change, membership loss, inaccessible service, explicit Stop/Next/Edit, or reported audio interruption. Already-downloaded audio cannot detect a remote kick while completely offline/backgrounded.
+- [x] Serialize asynchronous notification/context disposal before replacement playback; cancel pending notification setup safely so late completion cannot resurrect audio or leave controls behind.
+- [x] TypeScript, all **21 tests**, and Android JavaScript export (`--no-bytecode --max-workers 1`,995 modules,1.96MB) pass. New mocked-native tests cover loop ownership in background, notification Stop, cancellation during notification setup and permission denial; transport tests cover asynchronous disposal and cancellation. Expo introspection confirms mediaPlayback service, three required Android permissions, iOS `audio` background mode, and no microphone permission. These are not real-device background/Hermes acceptance tests.
+- [ ] Rebuild/install the APK with the new manifest, then verify tab/back, other apps, screen lock for at least five minutes, lock-screen Stop, denied notification permission, rapid replacement, sign-out and interruptions on the Galaxy A34. The earlier audible APK does not contain these native background settings. No background/device acceptance success is claimed yet.
+- [ ] Confirm whether “closed” includes swiping from Recents. Current upstream service uses `stopWithTask=true`; Recents/process termination and force-stop survival are not supported. No automatic restart after termination is implemented.
+
 ### Native Android success and device acceptance — 17 September
 
 - [x] Confirm the final user-terminal build from the saved Gradle log: `BUILD SUCCESSFUL in 2m20s`,396 tasks (193 executed,203 from cache). Development APK exists at ignored `artifacts/psalmo-development-arm64-v8a.apk`,68,663,873 bytes, SHA256 `d8a38868df048534a0713f491012824f2dc245ae155abefc93d7b47cbde87c69`. This verifies native compilation, including the audio module; no binary is published to GitHub.
 - [x] User explicitly confirms hearing metronome clicks. Reconnected Galaxy A34 is authorized; package-manager query confirms `com.paw.psalmo` installed. USB forwarding and a cold native-activity launch succeed; Metro development server is restarted on8082. No account/token copying or automatic audio Start is performed.
-- [ ] Complete the native transport/lifecycle pass: configured song Start/Stop; Next stops without auto-start; tab/back stops; screen lock/background stops and returning never resumes; saved Edit settings persist after reopening. User-reported clicks are not proof of all controls or interruption handling.
+- [ ] Complete the native transport/lifecycle pass with the revised behavior above: configured song Start/Stop; Next stops without auto-start; tab/back and screen lock/background retain playback; explicit Stop/interruption never auto-resumes; saved Edit settings persist after reopening. User-reported clicks are not proof of all controls or interruption handling.
 - [ ] Independently verify actual Hermes runtime, sample rate, Start latency/memory and30-minute recorded timing. Hermes-enabled compilation and audible clicks alone do not establish the timing gate.
-- [ ] Implement and hardware-test native Android route-disconnect safety before wired/USB/IEM use. Current0.12.2 Android library does not emit route changes. Ask which output the user tested (speaker, wired, Bluetooth or USB), and verify the real church audio chain before designing safe output controls. Keep background/lock-screen playback deferred.
+- [ ] Implement and hardware-test native Android route-disconnect safety before wired/USB/IEM use. Current0.12.2 Android library does not emit route changes. Ask which output the user tested (speaker, wired, Bluetooth or USB), and verify the real church audio chain before designing safe output controls. Background/lock-screen implementation is now in progress under the user-requested revision; hardware verification remains outstanding.
 
 The successful build and audible feedback above supersede the earlier build-pending notes below. Those notes preserve the troubleshooting history, not the current build status.
 

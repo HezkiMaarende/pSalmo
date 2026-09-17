@@ -1,4 +1,9 @@
 import React from "react";
+import { View } from "react-native";
+import {
+  ClickPlayerProvider,
+  ClickPlayerBar,
+} from "./src/context/ClickPlayerContext";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { ChurchProvider, useChurch } from "./src/context/ChurchContext";
@@ -58,7 +63,12 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar style="light" />
       <ChurchProvider>
-        <Root />
+        <ClickPlayerProvider>
+          <View style={{ flex: 1 }}>
+            <Root />
+            <ClickPlayerBar />
+          </View>
+        </ClickPlayerProvider>
       </ChurchProvider>
     </SafeAreaProvider>
   );

@@ -1,4 +1,4 @@
-import { Platform, TurboModuleRegistry } from "react-native";
+import { AppState, Platform, TurboModuleRegistry } from "react-native";
 import type {
   AudioContext,
   AudioBufferSourceNode,
@@ -20,18 +20,25 @@ export async function createClickRun(
   settings: ClickSettings,
   current: () => boolean,
   safetyStop: (message: string) => void,
+  title = "Metronome pSalmo",
+  serviceTitle = "Latihan",
 ): Promise<PlaybackRun> {
   if (!nativeClickAvailable) throw new Error(nativeClickNotice);
   // Type-only imports above are erased. Never evaluate native initialization in
   // Expo Go; loading this module must not break the existing five-page app.
-  const { AudioContext: Context, AudioManager } =
-    require("react-native-audio-api") as typeof import("react-native-audio-api");
+  const {
+    AudioContext: Context,
+    AudioManager,
+    PlaybackNotificationManager: notification,
+  } = require("react-native-audio-api") as typeof import("react-native-audio-api");
   let context: AudioContext | null = null;
   let source: AudioBufferSourceNode | null = null;
   let stopped = false;
+  let notificationShown = false;
+  let cleanup: Promise<void> | undefined;
   const subscriptions: { remove(): void }[] = [];
   function stop() {
-    if (stopped) return;
+    if (stopped) return cleanup;
     stopped = true;
     subscriptions.forEach((subscription) => subscription.remove());
     try {
@@ -47,18 +54,58 @@ export async function createClickRun(
     source = null;
     const closing = context;
     context = null;
-    if (closing) void closing.close().catch(() => {});
     try {
       AudioManager.observeAudioInterruptions(false);
     } catch {
       /* Never resume automatically. */
     }
+    cleanup = Promise.all([
+      closing?.close().catch(() => {}),
+      notificationShown ? notification.hide().catch(() => {}) : undefined,
+    ]).then(() => {});
+    return cleanup;
   }
   function interrupt(message: string) {
     stop();
     safetyStop(message);
   }
   try {
+    if (Platform.OS === "android") {
+      const permission = await AudioManager.requestNotificationPermissions();
+      if (permission !== "Granted")
+        throw new Error(
+          "Izinkan notifikasi agar tombol Stop tersedia saat layar terkunci. Jika izin tidak muncul, pasang APK pSalmo terbaru.",
+        );
+    }
+    if (!current()) return { stop, beat: () => null };
+    if (AppState.currentState !== "active")
+      throw new Error("Kembali ke aplikasi lalu tekan Start.");
+    for (const event of [
+      "playbackNotificationStop",
+      "playbackNotificationPause",
+      "playbackNotificationDismissed",
+    ] as const)
+      subscriptions.push(
+        notification.addEventListener(event, () =>
+          interrupt("Pemutar dihentikan dari kontrol media."),
+        ),
+      );
+    // Establish the media-playback foreground service before requesting audio
+    // focus (required for apps targeting Android 15+). Never remote-autostart.
+    notificationShown = true;
+    await notification.show({ title, artist: serviceTitle, state: "playing" });
+    if (!current() || stopped) {
+      await stop();
+      // Stop may have hidden the notification while show was still in flight.
+      await notification.hide();
+      return { stop, beat: () => null };
+    }
+    await notification.enableControl("stop", true);
+    if (!current() || stopped) {
+      await stop();
+      await notification.hide();
+      return { stop, beat: () => null };
+    }
     AudioManager.setAudioSessionOptions({
       iosCategory: "playback",
       iosMode: "default",
@@ -87,7 +134,7 @@ export async function createClickRun(
     );
     AudioManager.observeAudioInterruptions("gain");
     if (!current() || stopped) {
-      stop();
+      await stop();
       return { stop, beat: () => null };
     }
     context = new Context();
@@ -98,7 +145,7 @@ export async function createClickRun(
     fillClickLoop(buffer.getChannelData(0), loop);
     const resumed = await activeContext.resume();
     if (!current() || stopped) {
-      stop();
+      await stop();
       return { stop, beat: () => null };
     }
     if (!resumed || activeContext.state !== "running")
@@ -119,7 +166,7 @@ export async function createClickRun(
           : beatAt(loop, activeContext.currentTime - startAt),
     };
   } catch (error) {
-    stop();
+    await stop();
     throw error;
   }
 }

@@ -7,6 +7,28 @@ const source = fs.readFileSync(
   path.join(__dirname, "../plugins/withWindowsAudioBuild.js"),
   "utf8",
 );
+test("Background click configuration enables media playback without microphone permissions", () => {
+  const config = require("../app.json").expo;
+  const options = config.plugins.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === "react-native-audio-api",
+  )[1];
+  assert.equal(options.iosBackgroundMode, true);
+  assert.equal(options.androidForegroundService, true);
+  assert.deepEqual(options.androidFSTypes, ["mediaPlayback"]);
+  for (const permission of [
+    "FOREGROUND_SERVICE",
+    "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+    "POST_NOTIFICATIONS",
+  ])
+    assert.ok(
+      options.androidPermissions.includes(`android.permission.${permission}`),
+    );
+  assert.ok(
+    !options.androidPermissions.some((permission) =>
+      permission.includes("RECORD_AUDIO"),
+    ),
+  );
+});
 function loadPlugin() {
   const module = { exports: {} };
   vm.runInNewContext(source, {

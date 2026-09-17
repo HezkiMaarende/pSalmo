@@ -125,7 +125,7 @@ test("Stop cancels a pending native start; late completion never becomes active"
   });
   const starting = player.start({});
   await tick();
-  player.stop(); // Also used by next-song, tab blur, background and sign-out.
+  player.stop(); // Used by next-song, explicit Stop, sign-out and interruption.
   assert.equal(current(), false);
   pending.resolve();
   assert.equal(await starting, false);
@@ -167,4 +167,45 @@ test("Failed activation leaves stopped state and a later Start can recover", asy
   assert.equal(player.beat(), null);
   assert.equal(await player.start({}), true);
   assert.equal(player.beat(), 0);
+});
+
+test("Replacement waits for old notification cleanup, but Stop silences immediately", async () => {
+  const cleanup = deferred();
+  const created = [];
+  let silenced = false;
+  const player = new Playback(async (song) => {
+    created.push(song);
+    return {
+      beat: () => song,
+      stop: () => {
+        silenced = true;
+        return cleanup.promise;
+      },
+    };
+  });
+  assert.equal(await player.start(1), true);
+  const replacement = player.start(2);
+  assert.equal(silenced, true);
+  assert.equal(player.beat(), null);
+  await tick();
+  assert.deepEqual(created, [1]);
+  cleanup.resolve();
+  assert.equal(await replacement, true);
+  assert.deepEqual(created, [1, 2]);
+  player.stop();
+});
+
+test("Stop cancels a replacement waiting on native disposal", async () => {
+  const cleanup = deferred();
+  const created = [];
+  const player = new Playback(async (song) => {
+    created.push(song);
+    return { beat: () => song, stop: () => cleanup.promise };
+  });
+  await player.start(1);
+  const replacement = player.start(2);
+  player.stop();
+  cleanup.resolve();
+  assert.equal(await replacement, false);
+  assert.deepEqual(created, [1]);
 });

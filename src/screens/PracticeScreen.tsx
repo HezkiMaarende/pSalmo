@@ -1,16 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, AppState, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { Routes } from "../navigation/types";
 import * as api from "../lib/church";
 import { clickSettings, tappedBpm, ClickSettings } from "../domain/metronome";
-import { Playback } from "../domain/playback";
-import {
-  createClickRun,
-  nativeClickAvailable,
-  nativeClickNotice,
-} from "../lib/clickAudio";
+import { useClickPlayer } from "../context/ClickPlayerContext";
+import { nativeClickAvailable, nativeClickNotice } from "../lib/clickAudio";
 import {
   Body,
   Button,
@@ -52,60 +48,40 @@ function PracticeSession({
   detail: api.ServiceDetail;
   reload: () => Promise<void>;
 }) {
-  const [selectedId, setSelectedId] = useState(detail.items[0]?.id);
-  const [mode, setMode] = useState<"edit" | "play">("play");
-  const [playing, setPlaying] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const [beat, setBeat] = useState<number | null>(null);
-  const [notice, setNotice] = useState("");
-  const focused = useRef(false);
-  const startingRef = useRef(false);
-  const startRequest = useRef(0);
-  const [editorState, setEditorState] = useState({ dirty: false, busy: false });
-  const transport = useRef<Playback<ClickSettings> | null>(null);
-  if (!transport.current)
-    transport.current = new Playback((settings, current) =>
-      createClickRun(settings, current, (message) => stop(message)),
-    );
-  const stop = useCallback((message = "") => {
-    transport.current?.stop();
-    ++startRequest.current;
-    startingRef.current = false;
-    setStarting(false);
-    setPlaying(false);
-    setBeat(null);
-    setNotice(message);
-  }, []);
-  useFocusEffect(
-    useCallback(() => {
-      focused.current = true;
-      return () => {
-        focused.current = false;
-        stop();
-      };
-    }, [stop]),
+  const player = useClickPlayer();
+  const isFocused = useIsFocused();
+  const [appActive, setAppActive] = useState(
+    AppState.currentState === "active",
   );
+  const [selectedId, setSelectedId] = useState(
+    player.track?.serviceId === detail.service.id
+      ? player.track.itemId
+      : detail.items[0]?.id,
+  );
+  const [mode, setMode] = useState<"edit" | "play">("play");
+  const playing =
+    player.playing &&
+    player.track?.serviceId === detail.service.id &&
+    player.track.itemId === selectedId;
+  const starting = player.starting;
+  const [beat, setBeat] = useState<number | null>(null);
+  const notice = player.notice;
+  const [editorState, setEditorState] = useState({ dirty: false, busy: false });
+  const stop = player.stop;
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state !== "active")
-        stop(
-          "Pemutar dihentikan saat aplikasi tidak aktif. Tekan Start saat kembali.",
-        );
+      setAppActive(state === "active");
     });
     return () => subscription.remove();
-  }, [stop]);
-  // Refreshed content/permissions must never continue an old downloaded track.
+  }, []);
   useEffect(() => {
-    stop();
-  }, [detail, stop]);
-  useEffect(() => {
-    if (!playing) return;
-    const timer = setInterval(
-      () => setBeat(transport.current?.beat() ?? null),
-      40,
-    );
+    if (!playing || !isFocused || !appActive) {
+      setBeat(null);
+      return;
+    }
+    const timer = setInterval(() => setBeat(player.beat()), 40);
     return () => clearInterval(timer);
-  }, [playing]);
+  }, [playing, isFocused, appActive, player.beat]);
   const index = Math.max(
     0,
     detail.items.findIndex((song) => song.id === selectedId),
@@ -127,29 +103,12 @@ function PracticeSession({
   }
   async function start() {
     if (
-      !settings ||
-      startingRef.current ||
-      !focused.current ||
-      AppState.currentState !== "active"
+      settings &&
+      !starting &&
+      isFocused &&
+      AppState.currentState === "active"
     )
-      return;
-    startingRef.current = true;
-    const ticket = ++startRequest.current;
-    setStarting(true);
-    setNotice("");
-    try {
-      const started = await transport.current!.start(settings);
-      if (started && focused.current && ticket === startRequest.current)
-        setPlaying(true);
-    } catch (error) {
-      if (focused.current && ticket === startRequest.current)
-        setNotice(error instanceof Error ? error.message : String(error));
-    } finally {
-      if (ticket === startRequest.current) {
-        startingRef.current = false;
-        if (focused.current) setStarting(false);
-      }
-    }
+      await player.start(detail.service.id, item.id);
   }
   function transition(change: () => void) {
     if (editorState.busy) return;
@@ -257,9 +216,11 @@ function PracticeSession({
               onPress={() => select(detail.items[index + 1].id)}
             />
             <Body muted>
-              Next menghentikan klik. Lagu berikutnya tidak mulai otomatis.
-              Keluar, berganti tab, atau mengunci layar juga menghentikan
-              pemutar pada versi ini.
+              Next menghentikan klik. Lagu berikutnya tidak mulai otomatis. Klik
+              tetap berjalan saat berganti tab, membuka aplikasi lain, atau
+              mengunci layar. Gunakan Stop di aplikasi atau kontrol media.
+              Force-stop/penutupan proses tidak didukung; jangan hapus aplikasi
+              dari Recents saat latihan.
             </Body>
             <Title>Catatan</Title>
             <Body>{item.notes || "Belum ada catatan."}</Body>

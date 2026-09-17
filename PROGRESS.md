@@ -1,10 +1,10 @@
 # pSalmo Progress Tracker
 
-Last updated: 16 September 2026
+Last updated: 17 September 2026
 
 | Milestone | Status | Exit criteria |
 | --- | --- | --- |
-| 0. Project foundation | In progress | Typecheck, domain tests, Android JavaScript export, and GitHub CI pass; device launch and native/Hermes validation remain |
+| 0. Project foundation | In progress | Typecheck, tests, Android JavaScript export, CI and native Android APK compilation pass; native launch/clicks user-confirmed; detailed runtime/Hermes and device acceptance remain |
 | 1. Data and access | Implemented; device gate open | Guarded exact-email roster linking, membership revocation, permanent song-editor capability, roster-only publication projection, and role/RLS SQL tests pass; native session/device exercise remains |
 | 2. Five-page weekly church workflow | Implemented; device gate open | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains |
 | 3. Song Bank and Smart Add | In progress | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain |
@@ -12,6 +12,16 @@ Last updated: 16 September 2026
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
 
 ## This iteration
+
+### Native Android success and device acceptance — 17 September
+
+- [x] Confirm the final user-terminal build from the saved Gradle log: `BUILD SUCCESSFUL in 2m20s`,396 tasks (193 executed,203 from cache). Development APK exists at ignored `artifacts/psalmo-development-arm64-v8a.apk`,68,663,873 bytes, SHA256 `d8a38868df048534a0713f491012824f2dc245ae155abefc93d7b47cbde87c69`. This verifies native compilation, including the audio module; no binary is published to GitHub.
+- [x] User explicitly confirms hearing metronome clicks. Reconnected Galaxy A34 is authorized; package-manager query confirms `com.paw.psalmo` installed. USB forwarding and a cold native-activity launch succeed; Metro development server is restarted on8082. No account/token copying or automatic audio Start is performed.
+- [ ] Complete the native transport/lifecycle pass: configured song Start/Stop; Next stops without auto-start; tab/back stops; screen lock/background stops and returning never resumes; saved Edit settings persist after reopening. User-reported clicks are not proof of all controls or interruption handling.
+- [ ] Independently verify actual Hermes runtime, sample rate, Start latency/memory and30-minute recorded timing. Hermes-enabled compilation and audible clicks alone do not establish the timing gate.
+- [ ] Implement and hardware-test native Android route-disconnect safety before wired/USB/IEM use. Current0.12.2 Android library does not emit route changes. Ask which output the user tested (speaker, wired, Bluetooth or USB), and verify the real church audio chain before designing safe output controls. Keep background/lock-screen playback deferred.
+
+The successful build and audible feedback above supersede the earlier build-pending notes below. Those notes preserve the troubleshooting history, not the current build status.
 
 ### Phone feedback and next step
 

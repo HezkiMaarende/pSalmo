@@ -2,6 +2,8 @@
 
 The 16 September five-page implementation has passed TypeScript, pure-domain tests, the Android **JavaScript** export, and authenticated-role SQL tests. These do not validate a native app or Hermes. Check every item below on a real Android device before declaring the objective fully verified.
 
+17 September update: native Android APK compilation is independently confirmed from Gradle (`BUILD SUCCESSFUL in2m20s`); package-manager lookup confirms installation on the authorized Galaxy A34, and the user explicitly reports hearing metronome clicks. This closes the first native-build/audible smoke test, not the full checklist. Runtime Hermes inspection, transport/lifecycle controls, persistence, interruption/route safety and recorded timing remain open. See [PROGRESS.md](../PROGRESS.md) for APK size/hash and evidence boundaries.
+
 ## Prepare
 
 1. Set all three public `.env` values, including the provisioned church workspace ID, then restart Metro (`npm start`). No privileged keys belong in the app.

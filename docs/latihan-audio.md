@@ -27,6 +27,8 @@ Route/interruption listeners use [AudioManager](https://docs.swmansion.com/react
 
 ## Build and validate next
 
+17 September result: the final short-source/short-CMake-output build succeeds (`BUILD SUCCESSFUL in2m20s`), an installed package is independently confirmed, and the user explicitly hears metronome clicks. Earlier failed attempts below are historical. Continue with the native control/persistence/interruption checks; no measured timing, route-safe IEM operation, background playback or independent Hermes-runtime result is claimed yet.
+
 With Node24, Android SDK and supported JDK installed:
 
 ```sh

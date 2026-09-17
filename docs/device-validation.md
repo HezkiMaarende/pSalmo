@@ -44,7 +44,7 @@ npm run start:dev -- --localhost --port 8082
 
 Use pSalmo's development APK, not Expo Go. Keep any existing Metro instance on8082 instead of starting a duplicate. This produces a new native build only if Gradle reports success; the previous APK is not evidence for this revision.
 
-Automated checks currently pass TypeScript,44 unit/mock/source-contract tests, complete rollback SQL role/snapshot/default-meter fixtures, and Android JS export (1.98MB). These do not establish native UI behavior or real-device timing. CI checkpoints for phases1–5 are successful. Native appearance rebuild is tracked separately in PROGRESS.md. The previous APK is unchanged until a successful new build/install.
+The original five-phase automated checkpoint passed44 tests; the subsequent ProPresenter checkpoint passes TypeScript,64 unit/mock/source-contract tests, complete rollback SQL fixtures and Android JS export (2.02MB). CI passes. A new signed arm64 development APK with native picker and blocked broad storage permissions is built; installation is not yet exercised. These do not establish native UI behavior or real-device timing. Compilation and remaining device gates are tracked separately in PROGRESS.md.
 
 - [ ] First launch is Light even on a Dark phone; Profil → Tampilan switches every app page and Metronome immediately. Dark selection survives process restart, sign-out and another account. There is no System option.
 - [ ] Change theme with an unsaved Setlist draft and while clicks are active: draft, current route, selected song and playback remain intact. Verify native Alert/keyboard, loading/error surfaces, drawer and popup; YouTube/OS permission content is not recolored.

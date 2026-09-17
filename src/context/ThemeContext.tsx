@@ -9,6 +9,7 @@ import React, {
 import { ActivityIndicator, Appearance, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SystemUI from "expo-system-ui";
+import { StatusBar } from "expo-status-bar";
 import {
   palettes,
   ThemeColors,
@@ -81,6 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           justifyContent: "center",
         }}
       >
+        <StatusBar style="dark" />
         <ActivityIndicator
           color={palettes.light.teal}
           accessibilityLabel="Memuat tampilan"

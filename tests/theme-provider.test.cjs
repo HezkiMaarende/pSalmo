@@ -75,6 +75,7 @@ function harness(storage) {
           return { __esModule: true, default: storage };
         if (name === "expo-system-ui")
           return { setBackgroundColorAsync: async () => {} };
+        if (name === "expo-status-bar") return { StatusBar: "StatusBar" };
         if (name === "../domain/theme") return require("../.test-build/theme");
         throw Error(name);
       },

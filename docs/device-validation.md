@@ -16,7 +16,16 @@ Background-click revision (17 September): rebuild/install the development APK be
 
 ### Five-phase revision acceptance · 17 September
 
-Automated checks currently pass TypeScript, 44 unit/mock/source-contract tests, complete rollback SQL role/snapshot/default-meter fixtures, and Android JS export (1002 modules,1.98MB). These do not establish native UI behavior or real-device timing. CI for phases1–4 is successful. Native appearance rebuild is being tracked separately in PROGRESS.md.
+Rebuild/install from PowerShell in the repository, with the USB-debugging phone authorized:
+
+```powershell
+npm run build:android -- -GradleCache "$env:LOCALAPPDATA\Temp\psalmo-gradle-23f97ab5" -Install -DeviceId <serial-from-adb-devices> -MetroPort 8082
+npm run start:dev -- --localhost --port 8082
+```
+
+Use pSalmo's development APK, not Expo Go. Keep any existing Metro instance on8082 instead of starting a duplicate. This produces a new native build only if Gradle reports success; the previous APK is not evidence for this revision.
+
+Automated checks currently pass TypeScript,44 unit/mock/source-contract tests, complete rollback SQL role/snapshot/default-meter fixtures, and Android JS export (1.98MB). These do not establish native UI behavior or real-device timing. CI checkpoints for phases1–5 are successful. Native appearance rebuild is tracked separately in PROGRESS.md. The previous APK is unchanged until a successful new build/install.
 
 - [ ] First launch is Light even on a Dark phone; Profil → Tampilan switches every app page and Metronome immediately. Dark selection survives process restart, sign-out and another account. There is no System option.
 - [ ] Change theme with an unsaved Setlist draft and while clicks are active: draft, current route, selected song and playback remain intact. Verify native Alert/keyboard, loading/error surfaces, drawer and popup; YouTube/OS permission content is not recolored.

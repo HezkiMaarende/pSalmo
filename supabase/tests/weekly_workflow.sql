@@ -59,6 +59,14 @@ begin
   perform public.append_service_songs(s,canonical_song_id=>song);
   begin insert into public.setlist_items(setlist_id,song_id,position) select id,(ids->>'foreign_song')::uuid,20 from public.setlists where service_id=s; raise exception 'FAIL direct foreign song linkage'; exception when raise_exception then if sqlerrm='FAIL direct foreign song linkage' then raise; end if; end;
   perform public.append_service_songs(s,array['Manual song','Third song']);
+  assert exists(select 1 from public.setlist_items i join public.setlists l on l.id=i.setlist_id where l.service_id=s and i.proposed_title='Manual song' and i.time_signature='4/4' and i.bpm is null), 'manual default meter without default BPM';
+  item := public.save_library_song(t,null,'{"title":"Missing meter"}','[]');
+  assert exists(select 1 from public.songs where id=item and default_time_signature='4/4'), 'RPC missing meter defaults';
+  update public.songs set default_time_signature='3/4' where id=item;
+  assert exists(select 1 from public.songs where id=item and default_time_signature='3/4'), 'explicit meter preserved';
+  update public.songs set default_time_signature=null where id=item;
+  assert exists(select 1 from public.songs where id=item and default_time_signature='4/4'), 'direct API missing meter defaults';
+  assert exists(select 1 from public.songs where id=(ids->>'foreign_song')::uuid and default_time_signature is null), 'prototype meter unchanged';
   assert not exists(select 1 from public.setlists where service_id=(ids->>'ir_3')::uuid), 'IR3 independent from shared IR1/2';
   begin perform public.append_service_songs(s,canonical_song_id=>(ids->>'foreign_song')::uuid); raise exception 'FAIL foreign song'; exception when raise_exception then if sqlerrm='FAIL foreign song' then raise; end if; end;
   perform public.save_library_song(t,song,'{"title":"Changed library title","key":"D","bpm":120,"lyrics":"Changed lyrics"}','[]');

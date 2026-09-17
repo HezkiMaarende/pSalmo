@@ -6,6 +6,7 @@ import type {
   SongStructureSection,
 } from "../domain/service";
 import { youtubeId } from "../domain/youtube";
+import { defaultMeter } from "../domain/metronome";
 export const CHURCH_NAME = "GPdI Elshaddai Magelang";
 export const churchId = process.env.EXPO_PUBLIC_CHURCH_TEAM_ID || "";
 export interface Membership {
@@ -417,8 +418,8 @@ export function bpmValue(value: string): number | null {
     throw new Error("BPM harus bilangan bulat 20–400.");
   return bpm;
 }
-export function signatureValue(value: string): string | null {
-  if (!value.trim()) return null;
+export function signatureValue(value: string): string {
+  if (!value.trim()) return defaultMeter(value);
   if (!/^([1-9][0-9]*)\/([1-9][0-9]*)$/.test(value.trim()))
     throw new Error("Gunakan birama seperti 4/4 atau 6/8.");
   return value.trim();

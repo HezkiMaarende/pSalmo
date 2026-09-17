@@ -4,6 +4,10 @@ export interface ClickSettings {
   denominator: number;
 }
 
+export function defaultMeter(value: string | null | undefined): string {
+  return value?.trim() || "4/4";
+}
+
 // Common UI choices. The driver still accepts previously saved 13-beat/16th
 // meters; narrowing the picker must not silently rewrite legacy arrangements.
 export const timeSignatureOptions: readonly string[] = Array.from(
@@ -19,7 +23,7 @@ export function clickSettings(
 ): ClickSettings {
   if (!Number.isInteger(bpm) || bpm === null || bpm < 20 || bpm > 400)
     throw new Error("Atur BPM lagu (20–400) sebelum memutar.");
-  const match = /^(\d+)\/(2|4|8|16)$/.exec(signature || "");
+  const match = /^(\d+)\/(2|4|8|16)$/.exec(defaultMeter(signature));
   const beats = match ? Number(match[1]) : 0;
   if (beats < 1 || beats > 13)
     throw new Error(

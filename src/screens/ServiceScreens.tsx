@@ -20,6 +20,7 @@ import {
 } from "../components/ui";
 import { VideoReference } from "../components/VideoReference";
 import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
+import { defaultMeter } from "../domain/metronome";
 import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
@@ -463,7 +464,7 @@ function ArrangementForm({
   const [input, setInput] = useState<api.ArrangementInput>({
     key: item.key || "",
     bpm: item.bpm?.toString() || "",
-    signature: item.time_signature || "",
+    signature: defaultMeter(item.time_signature),
     structure:
       item.structure
         ?.map((s) => `${s.section}${s.bars ? ` | ${s.bars}` : ""}`)
@@ -493,7 +494,6 @@ function ArrangementForm({
             value={input[k]}
             onChange={(v) => setInput({ ...input, [k]: v })}
             disabled={a.busy}
-            allowEmpty
           />
         ) : (
           <Field

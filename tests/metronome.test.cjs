@@ -8,6 +8,7 @@ const {
   beatAt,
   tappedBpm,
   timeSignatureOptions,
+  defaultMeter,
 } = require("../.test-build/metronome.js");
 const { Playback } = require("../.test-build/playback.js");
 
@@ -40,7 +41,6 @@ test("Missing/invalid click settings are rejected; compound meters explicitly co
     [19, "4/4"],
     [401, "4/4"],
     [100.1, "4/4"],
-    [100, null],
     [100, "0/4"],
     [100, "14/4"],
     [100, "4/3"],
@@ -57,6 +57,14 @@ test("Missing/invalid click settings are rejected; compound meters explicitly co
   assert.equal(loop.pulseSeconds, 0.5);
   assert.equal(loop.pulses % 6, 0);
   assert.equal(pulseSample(loop, 6) / loop.sampleRate, 3);
+});
+
+test("Missing meters default to 4/4 without replacing existing or legacy meters", () => {
+  for (const meter of [null, undefined, "", "  "]) assert.equal(defaultMeter(meter), "4/4");
+  assert.equal(defaultMeter(" 6/8 "), "6/8");
+  assert.equal(defaultMeter("13/16"), "13/16");
+  assert.deepEqual(clickSettings(100, null), { bpm: 100, beats: 4, denominator: 4 });
+  assert.throws(() => clickSettings(null, null));
 });
 
 test("All supported tempos/meters use complete bars with bounded sample rounding over 30 minutes", () => {

@@ -8,7 +8,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { timeSignatureOptions } from "../domain/metronome";
+import { defaultMeter, timeSignatureOptions } from "../domain/metronome";
 import { Body, Button, colors, styles } from "./ui";
 
 export function TimeSignaturePicker({
@@ -16,17 +16,16 @@ export function TimeSignaturePicker({
   value,
   onChange,
   disabled = false,
-  allowEmpty = false,
 }: {
   label?: string;
   value: string;
   onChange(value: string): void;
   disabled?: boolean;
-  allowEmpty?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const { height } = useWindowDimensions();
   const close = () => setOpen(false);
+  value = defaultMeter(value);
   const legacy = !!value && !timeSignatureOptions.includes(value);
   return (
     <View style={{ gap: 6 }}>
@@ -96,15 +95,6 @@ export function TimeSignaturePicker({
                 </Pressable>
               ))}
             </ScrollView>
-            {allowEmpty && (
-              <Button
-                title="Belum diatur"
-                onPress={() => {
-                  if (!disabled) onChange("");
-                  close();
-                }}
-              />
-            )}
             <Button title="Batal" onPress={close} />
           </View>
         </View>

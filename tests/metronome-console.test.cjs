@@ -315,11 +315,10 @@ test("Cancel/back/backdrop preserve legacy meter; disabled picker cannot change 
   assert.deepEqual(h.changes, []);
 });
 
-test("Optional library/arrangement meters can be explicitly cleared", () => {
-  const h = pickerHarness();
+test("Missing meter displays and highlights 4/4 and cannot be cleared", () => {
+  const h = pickerHarness({ value: "" });
   assert.equal(h.find("Belum diatur"), undefined);
-  h.props.allowEmpty = true;
-  h.find("Belum diatur").props.onPress();
-  assert.deepEqual(h.changes, [""]);
-  assert.ok(h.find("Birama: Belum dipilih"));
+  assert.ok(h.find("Birama: 4/4"));
+  assert.equal(h.find("Pilih 4/4").props.accessibilityState.selected, true);
+  assert.deepEqual(h.changes, []);
 });

@@ -6,7 +6,7 @@ import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { Routes } from "../navigation/types";
 import * as api from "../lib/church";
-import { clickSettings, tappedBpm, ClickSettings } from "../domain/metronome";
+import { clickSettings, tappedBpm, ClickSettings, defaultMeter } from "../domain/metronome";
 import { useClickPlayer } from "../context/ClickPlayerContext";
 import { nativeClickAvailable, nativeClickNotice } from "../lib/clickAudio";
 import {
@@ -190,13 +190,13 @@ function ClickEditor({
   onStateChange: (state: { dirty: boolean; busy: boolean }) => void;
 }) {
   const [bpm, setBpm] = useState(item.bpm?.toString() || "");
-  const [signature, setSignature] = useState(item.time_signature || "");
+  const [signature, setSignature] = useState(defaultMeter(item.time_signature));
   const [notes, setNotes] = useState(item.notes || "");
   const taps = useRef<number[]>([]);
   const action = useAction(reload);
   const dirty =
     bpm !== (item.bpm?.toString() || "") ||
-    signature !== (item.time_signature || "") ||
+    signature !== defaultMeter(item.time_signature) ||
     notes !== (item.notes || "");
   useEffect(() => {
     onStateChange({ dirty, busy: action.busy });

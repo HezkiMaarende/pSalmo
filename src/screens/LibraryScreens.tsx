@@ -19,6 +19,7 @@ import {
 } from "../components/ui";
 import { VideoReference } from "../components/VideoReference";
 import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
+import { defaultMeter } from "../domain/metronome";
 import { MonthControl } from "./WeeklyScreens";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 function useLibraryEditor() {
@@ -158,7 +159,7 @@ const empty: api.SongInput = {
   artist: "",
   key: "",
   bpm: "",
-  time_signature: "",
+  time_signature: "4/4",
   lyrics: "",
   writer_credits: "",
   copyright_notice: "",
@@ -177,7 +178,7 @@ function SongForm({
           artist: song.artist || "",
           key: song.default_key || "",
           bpm: song.default_bpm?.toString() || "",
-          time_signature: song.default_time_signature || "",
+          time_signature: defaultMeter(song.default_time_signature),
           lyrics: song.lyrics,
           writer_credits: song.writer_credits || "",
           copyright_notice: song.copyright_notice || "",
@@ -214,7 +215,6 @@ function SongForm({
               value={input[k]}
               onChange={(v) => setInput({ ...input, [k]: v })}
               disabled={a.busy}
-              allowEmpty
             />
           ) : (
             <Field

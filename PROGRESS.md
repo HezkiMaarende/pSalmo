@@ -180,6 +180,14 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 - Upcoming service content opens read-only without a network connection.
 - Click device runs for 30 minutes through wired/USB output with typical click-to-click error <=5 ms and cumulative drift <=20 ms against the audio clock, including lock/background and audio-route interruption behaviour.
 
+## Five-phase revision · 17 September 2026
+
+- [x] Phase 1: missing meter defaults to 4/4 in forms/API and guarded database triggers. Migration `202609170018_default_church_meters.sql` applied. Active church has no missing meters; sounday retains its two missing arrangement meters. Existing values and BPM are preserved. Popup retains 36 choices, without the unset action. TypeScript and 31 tests passed; rollback database fixtures and export verification recorded in subsequent checkpoints.
+- [ ] Phase 2: atomic service title/key settings and combined playback labels.
+- [ ] Phase 3: root-stack Metronome without main tabs or duplicate mini-player.
+- [ ] Phase 4: persisted device-local Light/Dark themes across all screens.
+- [ ] Phase 5: regression, CI/export, appearance APK rebuild and device acceptance. Native/Hermes, measured timing, route/IEM and five-minute background/lock acceptance remain outstanding until actually exercised.
+
 ## Next objectives and carried research
 
 1. **Device acceptance first:** use `docs/device-validation.md`, verify native/Hermes, then triage actual church preparation feedback.

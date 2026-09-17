@@ -41,6 +41,7 @@ function harness(overrides = {}) {
           StyleSheet: { create: (value) => value },
         };
       if (name === "./ui") return { Feedback: () => null };
+      if (name === "../domain/songLabel") return { songLabel: (title, key) => key?.trim() ? `${title} - ${key.trim()}` : title || "Lagu" };
       throw new Error(name);
     },
   });

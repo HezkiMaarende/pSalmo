@@ -21,6 +21,7 @@ import {
 import { VideoReference } from "../components/VideoReference";
 import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 import { defaultMeter } from "../domain/metronome";
+import { songLabel } from "../domain/songLabel";
 import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
@@ -273,7 +274,7 @@ function SongRow({
   return (
     <Card>
       <Title>
-        {index + 1}. {item.proposed_title || "Lagu"}
+        {index + 1}. {songLabel(item.proposed_title, item.key)}
       </Title>
       <Body muted>
         {[
@@ -485,7 +486,7 @@ function ArrangementForm({
   };
   return (
     <Card>
-      <Body>{item.proposed_title}</Body>
+      <Body>{songLabel(item.proposed_title, item.key)}</Body>
       {(Object.keys(labels) as (keyof api.ArrangementInput)[]).map((k) =>
         k === "signature" ? (
           <TimeSignaturePicker

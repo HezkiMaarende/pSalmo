@@ -544,20 +544,22 @@ export async function saveArrangement(
   if (r.error) throw new Error(r.error.message);
 }
 
-// Only these arrangement columns change; key, lyrics, structure and references
-// are never overwritten by the Latihan editor. Select proves RLS updated a row.
-export async function saveClickSettings(
+// One atomic arrangement update; canonical songs and other services are untouched.
+// Selecting the updated row also detects a rejected/no-op RLS update.
+export async function saveSetlistSettings(
   id: string,
-  bpm: string,
-  signature: string,
-  notes: string,
+  input: { title: string; key: string; bpm: string; signature: string; notes: string },
 ): Promise<void> {
+  const title = input.title.trim();
+  if (!title) throw new Error("Judul lagu wajib diisi.");
   const r = await supabase
     .from("setlist_items")
     .update({
-      bpm: bpmValue(bpm),
-      time_signature: signatureValue(signature),
-      notes: notes.trim() || null,
+      proposed_title: title,
+      key: input.key.trim() || null,
+      bpm: bpmValue(input.bpm),
+      time_signature: signatureValue(input.signature),
+      notes: input.notes.trim() || null,
     })
     .eq("id", id)
     .select("id")

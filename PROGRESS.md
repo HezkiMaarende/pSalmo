@@ -183,7 +183,7 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 ## Five-phase revision · 17 September 2026
 
 - [x] Phase 1: missing meter defaults to 4/4 in forms/API and guarded database triggers. Migration `202609170018_default_church_meters.sql` applied. Active church has no missing meters; sounday retains its two missing arrangement meters. Existing values and BPM are preserved. Popup retains 36 choices, without the unset action. TypeScript and 31 tests passed; rollback database fixtures and export verification recorded in subsequent checkpoints.
-- [ ] Phase 2: atomic service title/key settings and combined playback labels.
+- [x] Phase 2: separate title/key inputs save atomically with BPM, meter and notes. Combined labels appear in service lists, Setlist/Practice, mini-player and new native playback metadata. Empty title rejected by client and a church-scoped database guard; unchanged RLS tested for ordinary, off-duty and kicked users. Snapshot lyrics/references and canonical songs stay independent. TypeScript and 33 tests passed. Phase 1 rollback policies and Android JS export also passed (997 modules, 1.97MB); not a native/Hermes claim.
 - [ ] Phase 3: root-stack Metronome without main tabs or duplicate mini-player.
 - [ ] Phase 4: persisted device-local Light/Dark themes across all screens.
 - [ ] Phase 5: regression, CI/export, appearance APK rebuild and device acceptance. Native/Hermes, measured timing, route/IEM and five-minute background/lock acceptance remain outstanding until actually exercised.

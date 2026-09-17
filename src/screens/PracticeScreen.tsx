@@ -170,7 +170,7 @@ function PracticeSession({
     >
       {view === "setlist" && detail.can_edit && (
         <ClickEditor
-          key={`${item.id}:${item.bpm}:${item.time_signature}:${item.notes}`}
+          key={`${item.id}:${item.proposed_title}:${item.key}:${item.bpm}:${item.time_signature}:${item.notes}`}
           item={item}
           reload={reload}
           onStateChange={setEditorState}
@@ -189,12 +189,16 @@ function ClickEditor({
   reload: () => Promise<void>;
   onStateChange: (state: { dirty: boolean; busy: boolean }) => void;
 }) {
+  const [title, setTitle] = useState(item.proposed_title || "");
+  const [key, setKey] = useState(item.key || "");
   const [bpm, setBpm] = useState(item.bpm?.toString() || "");
   const [signature, setSignature] = useState(defaultMeter(item.time_signature));
   const [notes, setNotes] = useState(item.notes || "");
   const taps = useRef<number[]>([]);
   const action = useAction(reload);
   const dirty =
+    title !== (item.proposed_title || "") ||
+    key !== (item.key || "") ||
     bpm !== (item.bpm?.toString() || "") ||
     signature !== defaultMeter(item.time_signature) ||
     notes !== (item.notes || "");
@@ -214,6 +218,8 @@ function ClickEditor({
   }
   return (
     <>
+      <Field label="Judul Lagu" value={title} onChangeText={setTitle} />
+      <Field label="Key/Nada dasar (opsional)" value={key} onChangeText={setKey} />
       <Field label="BPM (20–400)" value={bpm} onChangeText={setBpm} />
       <Button title="Tap tempo" disabled={action.busy} onPress={tap} />
       <TimeSignaturePicker
@@ -234,13 +240,13 @@ function ClickEditor({
         disabled={action.busy}
         onPress={() =>
           void action.run(async () => {
-            clickSettings(api.bpmValue(bpm), api.signatureValue(signature));
-            await api.saveClickSettings(item.id, bpm, signature, notes);
+            await api.saveSetlistSettings(item.id, { title, key, bpm, signature, notes });
           })
         }
       />
       <Body muted>
         Pengaturan disimpan untuk aransemen ibadah ini, bukan Song Bank.
+        Perubahan key tidak mentransposisi chord secara otomatis. BPM wajib sebelum Play.
         Practice memakai pengaturan tersimpan; simpan perubahan terlebih dahulu.
       </Body>
     </>

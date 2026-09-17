@@ -12,6 +12,7 @@ import { useChurch } from "./ChurchContext";
 import { getServiceDetail } from "../lib/church";
 import { clickSettings, ClickSettings } from "../domain/metronome";
 import { Playback } from "../domain/playback";
+import { songLabel } from "../domain/songLabel";
 import { createClickRun } from "../lib/clickAudio";
 import { Body, Button, colors } from "../components/ui";
 
@@ -102,7 +103,7 @@ export function ClickPlayerProvider({
         const track: Track = {
           serviceId,
           itemId,
-          title: item.proposed_title || "Lagu",
+          title: songLabel(item.proposed_title, item.key),
           serviceTitle: detail.service.title,
           settings: clickSettings(item.bpm, item.time_signature),
         };

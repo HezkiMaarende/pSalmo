@@ -57,7 +57,7 @@ begin
   perform public.set_song_editor(t,(ids->>'editor')::uuid,true);
   song := public.save_library_song(t,null,'{"title":"Snapshot song","key":"C","bpm":100,"time_signature":"4/4","lyrics":"[Verse]\nOriginal"}', '[{"label":"Original video","url":"https://youtu.be/dQw4w9WgXcQ"},{"label":"Alternate","url":"https://youtube.com/watch?v=dQw4w9WgXcQ"}]');
   perform public.append_service_songs(s,canonical_song_id=>song);
-  begin insert into public.setlist_items(setlist_id,song_id,position) select id,(ids->>'foreign_song')::uuid,20 from public.setlists where service_id=s; raise exception 'FAIL direct foreign song linkage'; exception when raise_exception then if sqlerrm='FAIL direct foreign song linkage' then raise; end if; end;
+  begin insert into public.setlist_items(setlist_id,song_id,position,proposed_title) select id,(ids->>'foreign_song')::uuid,20,'Foreign song' from public.setlists where service_id=s; raise exception 'FAIL direct foreign song linkage'; exception when raise_exception then if sqlerrm='FAIL direct foreign song linkage' then raise; end if; end;
   perform public.append_service_songs(s,array['Manual song','Third song']);
   assert exists(select 1 from public.setlist_items i join public.setlists l on l.id=i.setlist_id where l.service_id=s and i.proposed_title='Manual song' and i.time_signature='4/4' and i.bpm is null), 'manual default meter without default BPM';
   item := public.save_library_song(t,null,'{"title":"Missing meter"}','[]');
@@ -85,9 +85,10 @@ begin
   update public.services set status='approved' where id=s; get diagnostics rows_changed=row_count; assert rows_changed=0, 'WL cannot approve';
   update public.service_notes set body='Illegal' where service_id=s; get diagnostics rows_changed=row_count; assert rows_changed=0, 'WL cannot edit shared notes';
   select i.id,l.revision into item,revision_before from public.setlist_items i join public.setlists l on l.id=i.setlist_id where l.service_id=s order by i.position limit 1;
-  update public.setlist_items set bpm=137,time_signature='6/8',notes='Latihan setting' where id=item;
+  update public.setlist_items set proposed_title='Service title',key='E',bpm=137,time_signature='6/8',notes='Latihan setting' where id=item;
   get diagnostics rows_changed=row_count; assert rows_changed=1, 'assigned WL editor can save click settings';
-  assert exists(select 1 from public.setlist_items where id=item and bpm=137 and time_signature='6/8' and notes='Latihan setting' and key='C' and lyrics_or_chords like '%Original%' and jsonb_array_length(library_references)=2), 'click edit preserves arrangement columns';
+  assert exists(select 1 from public.setlist_items where id=item and proposed_title='Service title' and bpm=137 and time_signature='6/8' and notes='Latihan setting' and key='E' and lyrics_or_chords like '%Original%' and jsonb_array_length(library_references)=2), 'atomic title/key settings preserve lyrics and references';
+  begin update public.setlist_items set proposed_title='  ' where id=item; raise exception 'FAIL blank title'; exception when check_violation then null; end;
   assert exists(select 1 from public.songs where id=song and default_bpm=120), 'click edit leaves canonical library unchanged';
   select revision into revision_before from public.setlists where service_id=s;
   revision_after := public.move_setlist_item(item,'down',revision_before);
@@ -110,13 +111,13 @@ begin
   perform set_config('request.jwt.claim.sub',ids->>'member',true);
   assert exists(select 1 from public.services where id=s), 'assigned approved visible';
   assert not public.service_edit_permission(s), 'ordinary duty not editor';
-  update public.setlist_items set bpm=200,notes='Illegal ordinary click change' where id=item;
+  update public.setlist_items set proposed_title='Illegal title',key='F',bpm=200,notes='Illegal ordinary click change' where id=item;
   get diagnostics rows_changed=row_count; assert rows_changed=0, 'ordinary assigned member cannot save click settings';
   perform set_config('request.jwt.claim.sub',ids->>'owner',true);
   delete from public.service_assignments where service_id=s and person_id=(ids->>'editor_person')::uuid;
   perform set_config('request.jwt.claim.sub',ids->>'editor',true);
   assert not exists(select 1 from public.services where id=s), 'off-duty editor service hidden';
-  update public.setlist_items set bpm=200 where id=item;
+  update public.setlist_items set proposed_title='Off duty title',key='F',bpm=200 where id=item;
   get diagnostics rows_changed=row_count; assert rows_changed=0, 'off-duty editor cannot save click settings';
   perform public.save_library_song(t,song,'{"title":"Off duty editor update","lyrics":"Library still editable"}','[]');
   perform set_config('request.jwt.claim.sub',ids->>'owner',true);
@@ -124,7 +125,7 @@ begin
   assert exists(select 1 from public.service_assignments where service_id=s and display_name='member'), 'historical name retained';
   perform set_config('request.jwt.claim.sub',ids->>'member',true);
   assert not exists(select 1 from public.services where id=s), 'kicked assignment cannot bypass membership';
-  update public.setlist_items set bpm=200 where id=item;
+  update public.setlist_items set proposed_title='Kicked title',key='F',bpm=200 where id=item;
   get diagnostics rows_changed=row_count; assert rows_changed=0, 'kicked member cannot save click settings';
   assert not exists(select 1 from public.songs where id=song), 'kicked library blocked';
   begin perform public.read_weekly_schedule(t,'2026-09-20','2026-09-20'); raise exception 'FAIL kicked schedule'; exception when raise_exception then if sqlerrm='FAIL kicked schedule' then raise; end if; end;

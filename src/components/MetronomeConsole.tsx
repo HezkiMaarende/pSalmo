@@ -10,6 +10,7 @@ import {
 import type { ServiceDetail, SetlistItem } from "../lib/church";
 import type { ClickSettings } from "../domain/metronome";
 import { Feedback } from "./ui";
+import { songLabel } from "../domain/songLabel";
 
 type Props = {
   detail: ServiceDetail;
@@ -153,7 +154,7 @@ export function MetronomeConsole(props: Props) {
               <Pressable
                 key={song.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${position + 1}. ${song.proposed_title || "Lagu"}, ${song.bpm ?? "BPM belum diatur"}${song.bpm ? " BPM" : ""}, ${song.time_signature || "birama belum diatur"}`}
+                accessibilityLabel={`${position + 1}. ${songLabel(song.proposed_title, song.key)}, ${song.bpm ?? "BPM belum diatur"}${song.bpm ? " BPM" : ""}, ${song.time_signature || "birama belum diatur"}`}
                 accessibilityState={{
                   selected: song.id === item.id,
                   disabled: busy,
@@ -172,7 +173,7 @@ export function MetronomeConsole(props: Props) {
                 <Text
                   style={[s.trackTitle, song.id === item.id && s.selectedTitle]}
                 >
-                  {song.proposed_title || "Lagu"}
+                  {songLabel(song.proposed_title, song.key)}
                 </Text>
                 <View style={s.trackSettings}>
                   <Text style={s.trackBpm}>
@@ -189,7 +190,7 @@ export function MetronomeConsole(props: Props) {
             {editing ? "PENGATURAN LAGU" : "LAGU PILIHAN"}
           </Text>
           <Text style={s.songTitle} accessibilityRole="header">
-            {item.proposed_title || "Lagu"}
+            {songLabel(item.proposed_title, item.key)}
           </Text>
           <Text style={s.muted}>
             {[item.artist, item.key ? `Nada ${item.key}` : ""]

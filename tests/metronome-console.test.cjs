@@ -133,6 +133,12 @@ test("Running and pending transport expose Stop; Expo Go blocks Play", () => {
   h.props.audioAvailable = false;
   assert.equal(h.find("Mulai metronome").props.disabled, true);
 });
+test("Setlist keeps Stop available for an active or pending global player", () => {
+  const h = harness({ view: "setlist", audioActive: true, busy: true });
+  assert.equal(h.find("Stop metronome").props.disabled, false);
+  h.find("Stop metronome").props.onPress();
+  assert.deepEqual(h.calls, ["stop"]);
+});
 
 test("Setlist contains authorized editing, never a separate Edit tab; Practice hides all editor controls", () => {
   const h = harness();

@@ -16,3 +16,8 @@ export type Routes = {
   ManageServices: undefined;
   Rules: undefined;
 };
+export type RootRoutes = {
+  MainTabs: undefined;
+  Practice: { serviceId: string };
+  MetronomeAddSongs: { serviceId: string };
+};

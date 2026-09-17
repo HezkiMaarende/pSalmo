@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { Alert, AppState, View } from "react-native";
 import { MetronomeConsole } from "../components/MetronomeConsole";
 import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, usePreventRemove } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { Routes } from "../navigation/types";
+import type { RootRoutes } from "../navigation/types";
 import * as api from "../lib/church";
 import { clickSettings, tappedBpm, ClickSettings, defaultMeter } from "../domain/metronome";
 import { useClickPlayer } from "../context/ClickPlayerContext";
@@ -23,7 +23,15 @@ import {
 export function PracticeScreen({
   route,
   navigation,
-}: NativeStackScreenProps<Routes, "Practice">) {
+}: NativeStackScreenProps<RootRoutes, "Practice">) {
+  const [editorState, setEditorState] = useState({ dirty: false, busy: false });
+  usePreventRemove(editorState.dirty || editorState.busy, ({ data }) => {
+    if (editorState.busy) return;
+    Alert.alert("Perubahan belum disimpan", "Kembali tanpa menyimpan?", [
+      { text: "Tetap di sini", style: "cancel" },
+      { text: "Abaikan perubahan", style: "destructive", onPress: () => navigation.dispatch(data.action) },
+    ]);
+  });
   const state = useLoad(
     () => api.getServiceDetail(route.params.serviceId),
     [route.params.serviceId],
@@ -38,8 +46,10 @@ export function PracticeScreen({
         <PracticeSession
           detail={state.data}
           reload={state.reload}
+          editorState={editorState}
+          setEditorState={setEditorState}
           onAdd={() =>
-            navigation.navigate("AddSongs", {
+            navigation.navigate("MetronomeAddSongs", {
               serviceId: route.params.serviceId,
             })
           }
@@ -53,7 +63,11 @@ function PracticeSession({
   detail,
   reload,
   onAdd,
+  editorState,
+  setEditorState,
 }: {
+  editorState: { dirty: boolean; busy: boolean };
+  setEditorState: (state: { dirty: boolean; busy: boolean }) => void;
   onAdd: () => void;
   detail: api.ServiceDetail;
   reload: () => Promise<void>;
@@ -78,8 +92,10 @@ function PracticeSession({
   const starting = player.starting;
   const [beat, setBeat] = useState<number | null>(null);
   const notice = player.notice;
-  const [editorState, setEditorState] = useState({ dirty: false, busy: false });
   const stop = player.stop;
+  useEffect(() => {
+    if (view === "setlist" && detail.can_edit) stop();
+  }, [view, detail.can_edit, stop]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       setAppActive(state === "active");
@@ -155,6 +171,7 @@ function PracticeSession({
       beat={beat}
       playing={playing}
       starting={starting}
+      audioActive={player.playing || player.starting}
       view={view}
       busy={editorState.busy}
       error={settingsError || notice}

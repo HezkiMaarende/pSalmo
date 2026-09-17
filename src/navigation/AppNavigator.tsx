@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Text } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Routes } from "./types";
+import { Routes, RootRoutes } from "./types";
+import { useNavigationChrome } from "../context/NavigationChromeContext";
 import { colors } from "../components/ui";
 import {
   HomeScreen,
@@ -15,6 +16,7 @@ import {
   ServiceScreen,
   ArrangementScreen,
   AddSongsScreen,
+  MetronomeAddSongsScreen,
 } from "../screens/ServiceScreens";
 import {
   LibraryScreen,
@@ -30,6 +32,7 @@ import {
   RulesScreen,
 } from "../screens/ProfileScreen";
 const Stack = createNativeStackNavigator<Routes>();
+const RootStack = createNativeStackNavigator<RootRoutes>();
 const Tabs = createBottomTabNavigator();
 function PageStack({
   initial,
@@ -87,11 +90,6 @@ function PageStack({
         options={{ title: "Aransemen ibadah" }}
       />
       <Stack.Screen
-        name="Practice"
-        component={PracticeScreen}
-        options={{ title: "Latihan · Setlist / Practice" }}
-      />
-      <Stack.Screen
         name="AddSongs"
         component={AddSongsScreen}
         options={{ title: "Tambah lagu" }}
@@ -144,9 +142,8 @@ function AnnouncementsStack() {
 function ProfileStack() {
   return <PageStack initial="Profile" />;
 }
-export function AppNavigator() {
+function MainTabs() {
   return (
-    <NavigationContainer>
       <Tabs.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -177,6 +174,23 @@ export function AppNavigator() {
         <Tabs.Screen name="Pengumuman" component={AnnouncementsStack} />
         <Tabs.Screen name="Profil" component={ProfileStack} />
       </Tabs.Navigator>
+  );
+}
+export function AppNavigator() {
+  const nav = useNavigationContainerRef<RootRoutes>();
+  const { setMetronomeActive } = useNavigationChrome();
+  const updateChrome = () => {
+    const state = nav.getRootState();
+    setMetronomeActive(!!state && state.routes[state.index].name !== "MainTabs");
+  };
+  useEffect(() => () => setMetronomeActive(false), [setMetronomeActive]);
+  return (
+    <NavigationContainer ref={nav} onReady={updateChrome} onStateChange={updateChrome}>
+      <RootStack.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.teal }, headerTintColor: "#fff", contentStyle: { backgroundColor: colors.background } }}>
+        <RootStack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+        <RootStack.Screen name="Practice" component={PracticeScreen} options={{ title: "Metronome", headerBackTitle: "Kembali" }} />
+        <RootStack.Screen name="MetronomeAddSongs" component={MetronomeAddSongsScreen} options={{ title: "Tambah lagu" }} />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

@@ -20,6 +20,7 @@ type Props = {
   beat: number | null;
   playing: boolean;
   starting: boolean;
+  audioActive?: boolean;
   view: "setlist" | "practice";
   busy: boolean;
   error: string;
@@ -41,7 +42,7 @@ export function MetronomeConsole(props: Props) {
   const setlist = view === "setlist";
   const editing = setlist && detail.can_edit;
   const toggleView = () => props.onView(setlist ? "practice" : "setlist");
-  const running = playing || starting;
+  const running = playing || starting || !!props.audioActive;
   return (
     <View style={s.root}>
       <View style={s.top}>
@@ -124,6 +125,7 @@ export function MetronomeConsole(props: Props) {
           onPress={() => props.onView("practice")}
         />
       </View>
+      {setlist && running && <IconButton label="Stop metronome" icon="■" onPress={props.onStop} />}
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}

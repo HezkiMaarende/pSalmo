@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Routes } from "../navigation/types";
+import { Routes, RootRoutes } from "../navigation/types";
 import { useChurch } from "../context/ChurchContext";
 import * as api from "../lib/church";
 import { dateLabel } from "../domain/calendar";
@@ -521,7 +521,12 @@ function ArrangementForm({
   );
 }
 export function AddSongsScreen({ route }: Props<"AddSongs">) {
-  const { serviceId } = route.params;
+  return <AddSongsContent serviceId={route.params.serviceId} />;
+}
+export function MetronomeAddSongsScreen({ route }: NativeStackScreenProps<RootRoutes, "MetronomeAddSongs">) {
+  return <AddSongsContent serviceId={route.params.serviceId} />;
+}
+function AddSongsContent({ serviceId }: { serviceId: string }) {
   const [raw, setRaw] = useState("");
   const [query, setQuery] = useState("");
   const state = useLoad(

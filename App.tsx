@@ -18,6 +18,7 @@ import {
   useAction,
 } from "./src/components/ui";
 import { supabase } from "./src/lib/supabase";
+import { NavigationChromeProvider } from "./src/context/NavigationChromeContext";
 function Root() {
   const church = useChurch();
   const action = useAction();
@@ -64,10 +65,12 @@ export default function App() {
       <StatusBar style="light" />
       <ChurchProvider>
         <ClickPlayerProvider>
+          <NavigationChromeProvider>
           <View style={{ flex: 1 }}>
             <Root />
             <ClickPlayerBar />
           </View>
+          </NavigationChromeProvider>
         </ClickPlayerProvider>
       </ChurchProvider>
     </SafeAreaProvider>

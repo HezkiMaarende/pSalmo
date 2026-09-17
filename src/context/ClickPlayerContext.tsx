@@ -13,6 +13,7 @@ import { getServiceDetail } from "../lib/church";
 import { clickSettings, ClickSettings } from "../domain/metronome";
 import { Playback } from "../domain/playback";
 import { songLabel } from "../domain/songLabel";
+import { useNavigationChrome } from "./NavigationChromeContext";
 import { createClickRun } from "../lib/clickAudio";
 import { Body, Button, colors } from "../components/ui";
 
@@ -174,6 +175,8 @@ export function ClickPlayerProvider({
 
 export function ClickPlayerBar() {
   const player = useClickPlayer();
+  const { metronomeActive } = useNavigationChrome();
+  if (metronomeActive) return null;
   if (!player.playing && !player.starting) return null;
   return (
     <SafeAreaView

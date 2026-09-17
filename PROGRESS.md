@@ -13,6 +13,15 @@ Last updated: 17 September 2026
 
 ## This iteration
 
+### Tempo-inspired Latihan console — 17 September
+
+- [x] User reports completing the rebuilt-app installation and liking the global bottom metronome panel. The background-configured APK's SHA256 was independently verified as `1ae1d75609f544416254bf5bc1d6784999b7880e7bcce756e670f0e8232e1553` (68,664,165 bytes); full lock-screen/interruption/Hermes acceptance still requires explicit exercise.
+- [x] Adapt the supplied Tempo descriptions into a dark/orange Latihan console: METRONOME toolbar, view toggle/info, glowing meter-aware pulse lights, actual click/song status, service-titled selectable setlist with BPM/birama, and focused Practice view with notes/structure. View changes do not stop playback.
+- [x] Anchor circular dark-gray Previous / Play–Stop / Next controls outside the scrolling content. Stop remains available during activation; previous/final boundaries are disabled; song changes stop without automatic start. Preserve the existing global mini-player unchanged.
+- [x] Preserve authorized Edit/tap-tempo/save/dirty-change behavior; authorized Add opens the existing ibadah song workflow after stopping audio. No editor controls are exposed to ordinary members. Keep Automator/Tracker/mute out of the functional toolbar rather than showing fake counters/buttons; these remain deferred features.
+- [x] TypeScript, all **25 tests**, and Android JavaScript export (`--no-bytecode --max-workers 1`,996 modules,1.97MB) pass. Four new mocked component-contract tests cover non-stopping view switching, actual meter lights, dock placement/track boundaries, pending Stop/Expo Go gating, and permission/Edit controls. These do not replace device rendering/touch checks.
+- [ ] Reload the installed development app through Metro (no native dependency/config change or APK rebuild needed), inspect Setlist/Practice, long song titles/font scaling, orange pulse visibility, previous/final boundaries, dirty Edit guards and both Stop controls on the phone. Native timing, route safety and complete background checks remain open.
+
 ### Background click revision — 17 September
 
 - [x] Replace screen-owned transport with one authenticated app-wide player. Tab/back navigation, switching apps, and screen lock no longer stop the native PCM loop. A global Stop bar remains visible outside navigation; display-only timers pause offscreen/background.

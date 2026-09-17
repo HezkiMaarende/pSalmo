@@ -4,6 +4,8 @@ Reference confirmed by the user on 16 September 2026: Frozen Ape's [Tempo for An
 
 ## Implemented baseline
 
+- 17 September UI revision: dark/orange **METRONOME** console with a view switcher and Info, orange accented beat LEDs, real KLIK/LAGU status, and Setlist/Practice views. Setlist exposes all ibadah tracks with BPM/birama; Practice focuses on the selected song, saved notes and structure. View switching alone preserves playback. Beat count follows the saved meter, not a hard-coded four.
+- A non-scrolling bottom transport dock uses circular `#3A3A3A` Previous / Play–Stop / Next controls. The center shows Stop during activation/playback (not a resumable Pause). Previous/Next stop and select, with no automatic start/wrap. The existing global bottom mini-player is unchanged. Only authorized editors see Edit and Add; Add opens the existing service workflow after stopping the click. Automator/Tracker/mute are not implemented or represented by fake interactive controls.
 - Open **Ibadah → Mulai latihan · Edit / Play**. The existing service-detail RLS remains the entry boundary; the screen loads a fresh authorized detail rather than trusting navigation parameters.
 - Play shows the ordered song's title, key, BPM, birama, accent/beat indicators, arrangement structure and notes. Its transport controls are Start/Stop and Next Song. No editable settings appear here.
 - Next stops the current click and selects the next song; it never auto-starts or wraps from the final song. Stop also cancels an activation that has not finished.
@@ -62,6 +64,7 @@ The subsequent user-terminal attempt gets past that stall but reports an actual 
 - [ ] Save Edit settings; reopen to prove persistence. Verify ordinary members cannot save via API and authorized WL/MD cannot edit unrelated services. Check IR1/2 stay shared and IR3 independent.
 - [ ] Rapid Start/Stop/Next and pending activation cancellation never resurrect audio/notifications; replacement leaves only one click loop. Next/Edit/sign-out/interruption stop without automatic resume.
 - [ ] Tab/back navigation, another app, and screen lock for five minutes retain playback; global and lock-screen Stop silence it. Foreground return retains a still-authorized track but inaccessible/failed service validation stops it. Test denied notification permission and actual foreground-service state on Android. Recents removal/process termination is unsupported.
+- [ ] On-device dark-console layout: Setlist/Practice switching retains sound; correct meter lights and selected row; long titles/font scaling/touch targets; anchored transport reachable above tabs and preserved mini-player; first/final skips disabled; Play/Stop and authorized Edit/Add work. This UI-only revision needs a Metro reload, not another native APK rebuild.
 - [ ] Test calls/notifications/other audio; recovery always requires explicit Start. Test silent switch on iOS.
 - [ ] Implement/test native Android output-route detection and immediate safety stop; test wired/USB disconnects and sample-rate changes on both platforms before mixer/IEM use.
 - [ ] Record wired/USB output for 30 minutes and measure timing against the audio clock. Do not close the timing gate based on JavaScript tests or LEDs.

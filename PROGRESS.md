@@ -200,6 +200,14 @@ Phase 5 automated checkpoint:
 - [ ] Fresh appearance APK: rebuild attempted in a retained short TEMP source copy. First attempt failed because Gradle's PowerShell child did not resolve Get-FileHash; helper now explicitly loads shipped Utility/Archive modules. Retrying the same build passed that stage, then CMake/Ninja compiler ABI configuration remained idle with no clang process/progress. Only the six verified processes belonging to this attempt were stopped; no sources/caches/build folders were deleted. Previous APK remains unchanged; no new APK/install/native success is claimed. Run the normal build in the user's PowerShell (which previously completed native compilation), then follow docs/device-validation.md.
 - [ ] Device acceptance: both themes/restart/sign-out/account switching, popup/keyboard/font/dialog/safe-area, origin-tab Back, pending Stop and ≥5minute background/screen-lock playback. Independent Hermes inspection, measured timing and native route/IEM safety stay outstanding.
 
+## Private WhatsApp testing APK · 17 September 2026
+
+- [x] Added `npm run build:share`: release-bundled standalone preview, three Android ABIs, no Metro forwarding, separate ignored output `artifacts/psalmo-preview-universal.apk`. Development build behavior remains available unchanged by default.
+- [x] Public-config guard rejects secret/service-role/user-session keys and privileged EXPO_PUBLIC names; APK guard verifies signature, non-debuggable package, requested architectures and embedded bundle before copying output. Template test signing is explicitly private-testing-only, not production signing.
+- [x] TypeScript and all47 tests pass, including configuration rejection and build/verification contracts. PowerShell AST syntax checks pass. Real configured public values pass without printing their contents. Sharing/account/safety instructions are in `docs/share-apk.md`.
+- [ ] Standalone APK completion: compilation attempted in `psn-86d10902` with the reused cache. CMake/Ninja compiler ABI configuration again remained idle, with no clang and unchanged CPU/output. Cancelled this tool-owned attempt, then stopped only three verified leftover processes. No share APK, installation or runtime success is claimed; previous development APK and all source/cache folders are preserved. Run `npm run build:share` in normal user PowerShell, which previously completed native compilation.
+- [ ] Before sending: confirm the new preview opens with Metro stopped/USB disconnected. Friend uses their own registered account and PIC exact-email linking. Hermes runtime, timing and route/IEM gates remain outstanding; this build does not establish live-service readiness.
+
 ## Next objectives and carried research
 
 1. **Device acceptance first:** use `docs/device-validation.md`, verify native/Hermes, then triage actual church preparation feedback.

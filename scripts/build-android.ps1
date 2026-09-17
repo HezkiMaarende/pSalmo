@@ -1,7 +1,9 @@
 param(
+  [ValidateSet('development', 'preview')]
+  [string]$Variant = 'development',
   [string]$SdkPath = (Join-Path $env:LOCALAPPDATA 'Android\Sdk'),
   [string]$GradleCache = (Join-Path $env:TEMP 'psalmo-gradle'),
-  [ValidateSet('arm64-v8a', 'armeabi-v7a', 'x86_64')]
+  [ValidateSet('arm64-v8a', 'armeabi-v7a', 'x86_64', 'universal')]
   [string]$Architecture = 'arm64-v8a',
   [ValidateRange(1024, 65535)]
   [int]$MetroPort = 8081,
@@ -11,7 +13,12 @@ param(
   [string]$DeviceId
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Utility') -ErrorAction Stop
 $taskRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$taskPreview = $Variant -eq 'preview'
+$taskArchitectures = if ($Architecture -eq 'universal') { 'arm64-v8a,armeabi-v7a,x86_64' } else { $Architecture }
+$taskBuildType = if ($taskPreview) { 'release' } else { 'debug' }
+$taskGradleTask = if ($taskPreview) { ':app:assembleRelease' } else { ':app:assembleDebug' }
 $taskSdk = (Resolve-Path -LiteralPath $SdkPath).Path
 $taskAdb = Join-Path $taskSdk 'platform-tools\adb.exe'
 if (!(Test-Path -LiteralPath $taskAdb)) { throw "Android platform-tools are missing: $taskSdk" }
@@ -50,26 +57,36 @@ try {
   if (!(Test-Path -LiteralPath $taskAndroidUserHome)) { New-Item -ItemType Directory -Path $taskAndroidUserHome | Out-Null }
   $env:ANDROID_USER_HOME = $taskAndroidUserHome
   $env:EXPO_OFFLINE = '1'
-  $env:NODE_ENV = 'development'
+  $env:NODE_ENV = if ($taskPreview) { 'production' } else { 'development' }
   $env:npm_config_cache = Join-Path $taskRoot '.npm-cache'
   & npm.cmd ci --no-audit --no-fund
   if ($LASTEXITCODE -ne 0) { throw 'Installing locked dependencies in the short build folder failed.' }
+  if ($taskPreview) {
+    & node.exe scripts/validate-share-config.cjs
+    if ($LASTEXITCODE -ne 0) { throw 'Standalone APK public configuration validation failed.' }
+    Write-Host 'Preview uses release bundling/Hermes but the Expo template TEST signing key. Private testing only, not a production/store signing setup.'
+  }
   & npm.cmd run generate:android
   if ($LASTEXITCODE -ne 0) { throw 'Android prebuild failed.' }
   if ($PrepareOnly) { Write-Host 'Preparation complete; no native compilation or installation was attempted.'; return }
   Push-Location (Join-Path $taskNativeRoot 'android')
   try {
-    & .\gradlew.bat :app:assembleDebug --no-daemon --build-cache --max-workers=2 '-Pkotlin.compiler.execution.strategy=in-process' "-PreactNativeArchitectures=$Architecture"
+    & .\gradlew.bat $taskGradleTask --no-daemon --build-cache --max-workers=2 '-Pkotlin.compiler.execution.strategy=in-process' "-PreactNativeArchitectures=$taskArchitectures"
     if ($LASTEXITCODE -ne 0) { throw 'Native Android compilation failed. No APK success is claimed.' }
   } finally { Pop-Location }
-  $taskApk = Join-Path $taskNativeRoot 'android\app\build\outputs\apk\debug\app-debug.apk'
+  $taskApk = Join-Path $taskNativeRoot "android\app\build\outputs\apk\$taskBuildType\app-$taskBuildType.apk"
   if (!(Test-Path -LiteralPath $taskApk)) { throw 'Gradle returned without the expected APK.' }
+  if ($taskPreview) {
+    & powershell.exe -NoProfile -File scripts/verify-share-apk.ps1 -ApkPath $taskApk -SdkPath $taskSdk -Architectures $taskArchitectures
+    if ($LASTEXITCODE -ne 0) { throw 'Standalone APK verification failed; no shareable APK was published.' }
+  }
   $taskArtifacts = Join-Path $taskRoot 'artifacts'
   if (!(Test-Path -LiteralPath $taskArtifacts)) { New-Item -ItemType Directory -Path $taskArtifacts | Out-Null }
-  $taskOutput = Join-Path $taskArtifacts "psalmo-development-$Architecture.apk"
+  $taskOutput = Join-Path $taskArtifacts "psalmo-$Variant-$Architecture.apk"
   Copy-Item -LiteralPath $taskApk -Destination $taskOutput -Force
   Get-FileHash -LiteralPath $taskOutput -Algorithm SHA256
-  Write-Host "Development APK: $taskOutput"
+  Write-Host "${Variant} APK: $taskOutput"
+  if ($taskPreview) { Write-Host 'Install/test with Metro disconnected first. Then send this APK through WhatsApp as a Document; never send the development APK or .env.' }
   if ($Install) {
     # Keep SDK build caches isolated, but use the user's existing USB-debugging
     # identity for adb. Never copy Expo Go tokens or replace adb authorization.
@@ -78,9 +95,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'The selected Android device is not authorized/available.' }
     & $taskAdb -s $DeviceId install -r $taskOutput
     if ($LASTEXITCODE -ne 0) { throw 'APK installation failed.' }
-    & $taskAdb -s $DeviceId reverse "tcp:$MetroPort" "tcp:$MetroPort"
-    if ($LASTEXITCODE -ne 0) { throw 'USB Metro forwarding failed.' }
-    Write-Host "Run npm run start:dev -- --localhost --port $MetroPort, then open pSalmo (not Expo Go). Sign in with the same account."
+    if (!$taskPreview) {
+      & $taskAdb -s $DeviceId reverse "tcp:$MetroPort" "tcp:$MetroPort"
+      if ($LASTEXITCODE -ne 0) { throw 'USB Metro forwarding failed.' }
+      Write-Host "Run npm run start:dev -- --localhost --port $MetroPort, then open pSalmo (not Expo Go). Sign in with the same account."
+    } else {
+      Write-Host 'Standalone preview installed. Disconnect USB/Metro and open pSalmo; Internet remains required for accounts and church data.'
+    }
   }
 } finally {
   $env:ANDROID_HOME = $taskOldSdk

@@ -42,6 +42,10 @@ Video is mounted only when expanded, requires a user gesture, never autoplays, a
 
 Latihan has separate Edit/Play modes, service-specific BPM/birama/notes, tap tempo, beat indicators and Start/Stop/Next. Native click playback requires the installed pSalmo development app, not Expo Go. On Windows, `npm run build:android` uses a fresh short physical source copy under TEMP to avoid Ninja's path-length limit, then copies a successful arm64 debug APK back into ignored `artifacts/`; `npm run start:dev` serves it from the original repository. `-PrepareOnly` checks staging/dependencies/native generation without compilation or installation. Use `npm run start:go` for Expo Go's settings-only/UI flow. Standard `npm run android` also builds/installs natively, but does not provide the short-copy workaround. It is a **foreground-only audio spike, not validated for live service/mixer use**; background/lock playback and Android route-disconnect safety remain outstanding. Read [docs/latihan-audio.md](docs/latihan-audio.md) for counting conventions, architecture, USB installation and acceptance gates.
 
+## Share a private testing APK
+
+Run `npm run build:share` to create a standalone, multi-architecture preview at `artifacts/psalmo-preview-universal.apk`. Unlike the development APK, it embeds the app and does not need Metro. Send it through WhatsApp as a Document after testing with Metro disconnected. It uses a template test signing key, not production signing. See [docs/share-apk.md](docs/share-apk.md) for setup, account access and safety notes.
+
 ## Validate
 
 ```sh

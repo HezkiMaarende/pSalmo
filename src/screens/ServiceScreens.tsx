@@ -19,6 +19,7 @@ import {
   openLink,
 } from "../components/ui";
 import { VideoReference } from "../components/VideoReference";
+import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
@@ -112,7 +113,7 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
               build native; belum tervalidasi untuk pelayanan langsung.
             </Body>
             <Button
-              title="Mulai latihan · Edit / Play"
+              title="Mulai latihan · Setlist / Practice"
               disabled={!d.items.length}
               onPress={() => navigation.navigate("Practice", { serviceId: id })}
             />
@@ -475,7 +476,7 @@ function ArrangementForm({
   const labels: Record<keyof api.ArrangementInput, string> = {
     key: "Key ibadah",
     bpm: "BPM (20–400)",
-    signature: "Birama (4/4)",
+    signature: "Birama",
     structure: "Struktur · Bagian | jumlah bar · satu per baris",
     lyrics: "Lirik / chord khusus ibadah",
     url: "URL aransemen",
@@ -484,15 +485,26 @@ function ArrangementForm({
   return (
     <Card>
       <Body>{item.proposed_title}</Body>
-      {(Object.keys(labels) as (keyof api.ArrangementInput)[]).map((k) => (
-        <Field
-          key={k}
-          label={labels[k]}
-          value={input[k]}
-          onChangeText={(v) => setInput({ ...input, [k]: v })}
-          multiline={["lyrics", "structure", "notes"].includes(k)}
-        />
-      ))}
+      {(Object.keys(labels) as (keyof api.ArrangementInput)[]).map((k) =>
+        k === "signature" ? (
+          <TimeSignaturePicker
+            key={k}
+            label={labels[k]}
+            value={input[k]}
+            onChange={(v) => setInput({ ...input, [k]: v })}
+            disabled={a.busy}
+            allowEmpty
+          />
+        ) : (
+          <Field
+            key={k}
+            label={labels[k]}
+            value={input[k]}
+            onChangeText={(v) => setInput({ ...input, [k]: v })}
+            multiline={["lyrics", "structure", "notes"].includes(k)}
+          />
+        ),
+      )}
       <Feedback error={a.error} />
       <Button
         title="Simpan aransemen"

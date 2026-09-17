@@ -4,6 +4,13 @@ export interface ClickSettings {
   denominator: number;
 }
 
+// Common UI choices. The driver still accepts previously saved 13-beat/16th
+// meters; narrowing the picker must not silently rewrite legacy arrangements.
+export const timeSignatureOptions: readonly string[] = Array.from(
+  { length: 12 },
+  (_, index) => [2, 4, 8].map((denominator) => `${index + 1}/${denominator}`),
+).flat();
+
 // BPM counts denominator-note pulses: 6/8 has six eighth-note clicks per bar.
 // Dotted-quarter counting and custom accent groupings are deliberately deferred.
 export function clickSettings(

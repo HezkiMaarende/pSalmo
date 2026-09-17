@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Alert,
   Pressable,
@@ -19,7 +19,7 @@ type Props = {
   beat: number | null;
   playing: boolean;
   starting: boolean;
-  mode: "edit" | "play";
+  view: "setlist" | "practice";
   busy: boolean;
   error: string;
   audioAvailable: boolean;
@@ -27,18 +27,19 @@ type Props = {
   onSelect(id: string): void;
   onStart(): void;
   onStop(): void;
-  onMode(mode: "edit" | "play"): void;
+  onView(view: "setlist" | "practice"): void;
   onAdd(): void;
   children: React.ReactNode;
 };
 
-// Layout-only view state never touches the app-wide audio owner. Edit/track
-// changes remain explicit transitions in PracticeSession, including dirty guards.
+// A single controlled view: Setlist includes authorized editing; Practice is
+// playback-only. All switches use the parent's dirty/save and audio safeguards.
 export function MetronomeConsole(props: Props) {
-  const { detail, item, index, settings, beat, playing, starting, mode, busy } =
+  const { detail, item, index, settings, beat, playing, starting, view, busy } =
     props;
-  const [setlist, setSetlist] = useState(true);
-  const toggleView = () => setSetlist((value) => !value);
+  const setlist = view === "setlist";
+  const editing = setlist && detail.can_edit;
+  const toggleView = () => props.onView(setlist ? "practice" : "setlist");
   const running = playing || starting;
   return (
     <View style={s.root}>
@@ -47,6 +48,7 @@ export function MetronomeConsole(props: Props) {
           label={setlist ? "Tampilkan Practice" : "Tampilkan Setlist"}
           icon="▦"
           onPress={toggleView}
+          disabled={busy}
           selected={setlist}
         />
         <Text style={s.logo} accessibilityRole="header">
@@ -58,7 +60,7 @@ export function MetronomeConsole(props: Props) {
           onPress={() =>
             Alert.alert(
               "Metronome pSalmo",
-              "Pilih Setlist untuk daftar lagu, atau Practice untuk fokus pada satu lagu. BPM dihitung per ketukan birama: 6/8 = enam klik not 1/8. Ketukan pertama beraksen. Previous/Next menghentikan klik; lagu baru tidak mulai otomatis. Klik tetap berjalan saat pindah tab atau layar terkunci. Gunakan Stop pada kontrol media atau panel bawah. Automator, Tracker, dan mute belum tersedia.",
+              "Setlist adalah halaman daftar sekaligus edit lagu untuk PIC/admin atau editor WL/MD yang berwenang. Practice khusus bermain, tanpa pengaturan edit. Masuk Setlist untuk mengedit menghentikan klik; perubahan belum disimpan dikonfirmasi sebelum pindah halaman/lagu. BPM dihitung per ketukan birama: 6/8 = enam klik not 1/8. Previous/Next menghentikan klik; lagu baru tidak mulai otomatis. Klik tetap berjalan saat pindah tab aplikasi atau layar terkunci. Gunakan Stop pada kontrol media atau panel bawah. Automator, Tracker, dan mute belum tersedia.",
             )
           }
         />
@@ -111,21 +113,15 @@ export function MetronomeConsole(props: Props) {
         <Tab
           label="Setlist"
           selected={setlist}
-          onPress={() => setSetlist(true)}
+          disabled={busy}
+          onPress={() => props.onView("setlist")}
         />
         <Tab
           label="Practice"
           selected={!setlist}
-          onPress={() => setSetlist(false)}
+          disabled={busy}
+          onPress={() => props.onView("practice")}
         />
-        {detail.can_edit && (
-          <Tab
-            label={mode === "edit" ? "Selesai Edit" : "Edit"}
-            selected={mode === "edit"}
-            disabled={busy}
-            onPress={() => props.onMode(mode === "edit" ? "play" : "edit")}
-          />
-        )}
       </View>
       <ScrollView
         style={s.scroll}
@@ -133,11 +129,11 @@ export function MetronomeConsole(props: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={s.setlistHeader}>
-          {detail.can_edit && (
+          {editing && (
             <IconButton
               label="Tambah lagu ke ibadah"
               icon="+"
-              disabled={busy || mode === "edit"}
+              disabled={busy}
               onPress={props.onAdd}
             />
           )}
@@ -148,6 +144,7 @@ export function MetronomeConsole(props: Props) {
             label={setlist ? "Fokus pada lagu" : "Kembali ke daftar lagu"}
             icon={setlist ? "↗" : "▦"}
             onPress={toggleView}
+            disabled={busy}
           />
         </View>
         {setlist && (
@@ -189,7 +186,7 @@ export function MetronomeConsole(props: Props) {
         )}
         <View style={s.activeSong}>
           <Text style={s.label}>
-            {mode === "edit" ? "PENGATURAN LAGU" : "LAGU PILIHAN"}
+            {editing ? "PENGATURAN LAGU" : "LAGU PILIHAN"}
           </Text>
           <Text style={s.songTitle} accessibilityRole="header">
             {item.proposed_title || "Lagu"}
@@ -206,7 +203,7 @@ export function MetronomeConsole(props: Props) {
               <Text style={s.value}>{item.time_signature || "—"}</Text>
             </View>
           </View>
-          {mode === "play" ? (
+          {!editing ? (
             <>
               <Text style={s.label}>CATATAN</Text>
               <Text style={s.notes}>{item.notes || "Belum ada catatan."}</Text>
@@ -232,10 +229,10 @@ export function MetronomeConsole(props: Props) {
           <Feedback error={props.error} />
         </View>
       </ScrollView>
-      {mode === "play" && (
+      {!setlist && (
         <View style={s.dock}>
           <Text style={s.label}>
-            {setlist ? "SETLIST" : "PRACTICE"} ·{" "}
+            PRACTICE ·{" "}
             {running ? "STOP UNTUK BERHENTI" : "TEKAN PLAY UNTUK MULAI"}
           </Text>
           <View style={s.transport}>

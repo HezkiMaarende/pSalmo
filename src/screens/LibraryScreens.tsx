@@ -18,6 +18,7 @@ import {
   useAction,
 } from "../components/ui";
 import { VideoReference } from "../components/VideoReference";
+import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 import { MonthControl } from "./WeeklyScreens";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 function useLibraryEditor() {
@@ -192,7 +193,7 @@ function SongForm({
     artist: "Artis",
     key: "Key dasar",
     bpm: "BPM dasar (20–400)",
-    time_signature: "Birama dasar (4/4)",
+    time_signature: "Birama dasar",
     lyrics: "Lirik polos · gunakan judul bagian seperti [Verse 1]",
     writer_credits: "Penulis / atribusi",
     copyright_notice: "Informasi hak cipta",
@@ -205,15 +206,26 @@ function SongForm({
   return (
     <>
       <Card>
-        {(Object.keys(labels) as (keyof api.SongInput)[]).map((k) => (
-          <Field
-            key={k}
-            label={labels[k]}
-            value={input[k]}
-            onChangeText={(v) => setInput({ ...input, [k]: v })}
-            multiline={k === "lyrics"}
-          />
-        ))}
+        {(Object.keys(labels) as (keyof api.SongInput)[]).map((k) =>
+          k === "time_signature" ? (
+            <TimeSignaturePicker
+              key={k}
+              label={labels[k]}
+              value={input[k]}
+              onChange={(v) => setInput({ ...input, [k]: v })}
+              disabled={a.busy}
+              allowEmpty
+            />
+          ) : (
+            <Field
+              key={k}
+              label={labels[k]}
+              value={input[k]}
+              onChangeText={(v) => setInput({ ...input, [k]: v })}
+              multiline={k === "lyrics"}
+            />
+          ),
+        )}
         <Body muted>
           Perubahan library tidak mengubah aransemen ibadah yang sudah
           ditambahkan. Chord ditulis di aransemen ibadah, bukan di library.

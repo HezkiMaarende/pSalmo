@@ -89,7 +89,7 @@ function PageStack({
       <Stack.Screen
         name="Practice"
         component={PracticeScreen}
-        options={{ title: "Latihan · Edit / Play" }}
+        options={{ title: "Latihan · Setlist / Practice" }}
       />
       <Stack.Screen
         name="AddSongs"

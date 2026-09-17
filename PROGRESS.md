@@ -13,6 +13,14 @@ Last updated: 17 September 2026
 
 ## This iteration
 
+### Setlist is the edit page — 17 September
+
+- [x] Add the requested meter popup instead of free typing: 36 options, numerator1–12 and denominators2/4/8, from1/2 to12/8. Reuse the selector in Setlist, service arrangements and Song Bank. Highlight the current value; selection closes the popup; Cancel/Android Back/backdrop do not modify it. Preserve old13-beat/16th meters unless explicitly replaced, with a visible explanation; optional library/arrangement values can be explicitly cleared.
+- [x] Apply the user's correction: one controlled Setlist/Practice view, with no separate Edit tab or mode. Setlist includes the selected song's inline BPM/birama/notes editor for authorized PIC/admin or assigned WL/MD editors; ordinary users see read-only content. Add is available on Setlist only; Practice contains no editor or add controls.
+- [x] Practice owns the circular playback dock. Entering editable Setlist stops playback; switching ordinary read-only views does not. Unsaved Setlist changes prompt before Practice, another song or Add; all switches/add actions disable during saving. Preserve app-wide/background playback and the global bottom mini-player.
+- [x] Update the service entry label, navigation title and saved-settings explanation to Setlist/Practice. TypeScript, **30 tests**, and Android JavaScript export (`--no-bytecode --max-workers 1`,997 modules,1.97MB) pass; component-contract tests exercise merged editing, Practice isolation, disabled switches during saving, popup selection/cancellation/legacy values and all36 playable options. No native dependencies/config changes or APK rebuild required.
+- [ ] Verify inline editing, save/discard prompts, Add, Practice dock, ordinary-member read-only behavior, and popup scrolling/selection/Cancel/Android Back on the phone. Native/Hermes, measured audio timing and route/background device gates remain explicitly outstanding.
+
 ### Tempo-inspired Latihan console — 17 September
 
 - [x] User reports completing the rebuilt-app installation and liking the global bottom metronome panel. The background-configured APK's SHA256 was independently verified as `1ae1d75609f544416254bf5bc1d6784999b7880e7bcce756e670f0e8232e1553` (68,664,165 bytes); full lock-screen/interruption/Hermes acceptance still requires explicit exercise.

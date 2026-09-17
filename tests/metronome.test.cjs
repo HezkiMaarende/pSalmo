@@ -7,8 +7,32 @@ const {
   fillClickLoop,
   beatAt,
   tappedBpm,
+  timeSignatureOptions,
 } = require("../.test-build/metronome.js");
 const { Playback } = require("../.test-build/playback.js");
+
+test("Popup provides exactly 36 playable meters from 1/2 to 12/8", () => {
+  assert.equal(timeSignatureOptions.length, 36);
+  assert.equal(new Set(timeSignatureOptions).size, 36);
+  assert.equal(timeSignatureOptions[0], "1/2");
+  assert.equal(timeSignatureOptions.at(-1), "12/8");
+  for (let beats = 1; beats <= 12; beats++)
+    for (const denominator of [2, 4, 8]) {
+      assert.ok(timeSignatureOptions.includes(`${beats}/${denominator}`));
+      assert.deepEqual(clickSettings(120, `${beats}/${denominator}`), {
+        bpm: 120,
+        beats,
+        denominator,
+      });
+    }
+  assert.ok(!timeSignatureOptions.includes("13/8"));
+  assert.ok(!timeSignatureOptions.includes("4/16"));
+  assert.deepEqual(clickSettings(120, "13/16"), {
+    bpm: 120,
+    beats: 13,
+    denominator: 16,
+  });
+});
 
 test("Missing/invalid click settings are rejected; compound meters explicitly count denominator pulses", () => {
   for (const [bpm, signature] of [

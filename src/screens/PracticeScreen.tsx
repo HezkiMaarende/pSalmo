@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, AppState, View } from "react-native";
 import { MetronomeConsole } from "../components/MetronomeConsole";
+import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 import { useIsFocused } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { Routes } from "../navigation/types";
@@ -67,7 +68,9 @@ function PracticeSession({
       ? player.track.itemId
       : detail.items[0]?.id,
   );
-  const [mode, setMode] = useState<"edit" | "play">("play");
+  const [view, setView] = useState<"setlist" | "practice">(
+    player.track?.serviceId === detail.service.id ? "practice" : "setlist",
+  );
   const playing =
     player.playing &&
     player.track?.serviceId === detail.service.id &&
@@ -101,6 +104,9 @@ function PracticeSession({
       <Card>
         <Title>Belum ada lagu</Title>
         <Body>Tambahkan daftar lagu sebelum memulai latihan.</Body>
+        {detail.can_edit && (
+          <Button title="Tambah lagu ke ibadah" onPress={onAdd} />
+        )}
       </Card>
     );
   let settings: ClickSettings | null = null;
@@ -119,14 +125,14 @@ function PracticeSession({
     )
       await player.start(detail.service.id, item.id);
   }
-  function transition(change: () => void) {
+  function transition(change: () => void, stopAudio = true) {
     if (editorState.busy) return;
     const proceed = () => {
-      stop();
+      if (stopAudio) stop();
       setEditorState({ dirty: false, busy: false });
       change();
     };
-    if (mode === "edit" && editorState.dirty)
+    if (view === "setlist" && detail.can_edit && editorState.dirty)
       Alert.alert(
         "Perubahan belum disimpan",
         "Lanjut tanpa menyimpan pengaturan latihan?",
@@ -149,7 +155,7 @@ function PracticeSession({
       beat={beat}
       playing={playing}
       starting={starting}
-      mode={mode}
+      view={view}
       busy={editorState.busy}
       error={settingsError || notice}
       audioAvailable={nativeClickAvailable}
@@ -157,13 +163,12 @@ function PracticeSession({
       onSelect={select}
       onStart={() => void start()}
       onStop={() => stop()}
-      onMode={(next) => transition(() => setMode(next))}
-      onAdd={() => {
-        stop();
-        onAdd();
+      onView={(next) => {
+        if (next !== view) transition(() => setView(next), detail.can_edit);
       }}
+      onAdd={() => transition(onAdd)}
     >
-      {mode === "edit" && (
+      {view === "setlist" && detail.can_edit && (
         <ClickEditor
           key={`${item.id}:${item.bpm}:${item.time_signature}:${item.notes}`}
           item={item}
@@ -211,10 +216,11 @@ function ClickEditor({
     <>
       <Field label="BPM (20–400)" value={bpm} onChangeText={setBpm} />
       <Button title="Tap tempo" disabled={action.busy} onPress={tap} />
-      <Field
-        label="Birama (contoh 4/4, 3/4, 6/8)"
+      <TimeSignaturePicker
+        label="Birama"
         value={signature}
-        onChangeText={setSignature}
+        onChange={setSignature}
+        disabled={action.busy}
       />
       <Field
         label="Catatan latihan"
@@ -234,8 +240,8 @@ function ClickEditor({
         }
       />
       <Body muted>
-        Pengaturan disimpan untuk aransemen ibadah ini, bukan Song Bank. Masuk
-        Play memakai pengaturan tersimpan; simpan perubahan terlebih dahulu.
+        Pengaturan disimpan untuk aransemen ibadah ini, bukan Song Bank.
+        Practice memakai pengaturan tersimpan; simpan perubahan terlebih dahulu.
       </Body>
     </>
   );

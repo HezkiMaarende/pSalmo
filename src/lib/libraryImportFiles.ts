@@ -30,7 +30,7 @@ export async function pickLibraryTextFiles(): Promise<{
   const actualSizes: number[] = [];
   try {
     if (!result.assets.length || result.assets.length > 50)
-      throw Error("Pilih 1–50 file .txt.");
+      throw Error("Pilih 1–50 file .txt/.pro/.propresenter.");
     const files = result.assets.map((asset) => new File(asset.uri));
     assertFileBounds(files.map((file) => file.size));
     for (let i = 0; i < files.length; i++) {

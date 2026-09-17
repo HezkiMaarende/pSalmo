@@ -1,0 +1,34 @@
+-- Synthetic reviewed payloads only, not real church lyrics/files. Roll back all.
+begin;
+do $$ declare owner_id uuid:=gen_random_uuid(); member_id uuid:=gen_random_uuid(); team_id uuid;
+begin
+  insert into auth.users(id,email,raw_user_meta_data) values(owner_id,owner_id::text||'@native-import.invalid','{}'),(member_id,member_id::text||'@native-import.invalid','{}');
+  insert into public.teams(name,created_by,admin_managed) values('Native import rollback fixture',owner_id,true) returning id into team_id;
+  insert into public.team_memberships(team_id,user_id) values(team_id,member_id);
+  perform set_config('psalmo.native_fixture',jsonb_build_object('owner',owner_id,'member',member_id,'team',team_id)::text,true);
+end $$;
+set local role authenticated;
+do $$ declare fixture jsonb:=current_setting('psalmo.native_fixture')::jsonb;
+  t uuid:=(fixture->>'team')::uuid; batch uuid:=gen_random_uuid(); result jsonb; imported uuid; count_before integer;
+  base jsonb:='{"source_filename":"Song.PRO","title":"Native Song","artist":"Artist","lyrics":"[Verse 1]\nOriginal fixture\nOriginal fixture\n\n[Chorus]\nRepeated fixture","writer_credits":"Fixture writer","copyright_notice":"Fixture publisher","key":"","bpm":null,"time_signature":"4/4"}';
+begin
+  perform set_config('request.jwt.claim.sub',fixture->>'member',true);
+  begin perform public.import_library_songs(t,batch,'Permission fixture',jsonb_build_array(base)); raise exception 'Member imported native'; exception when others then if sqlerrm='Member imported native' then raise; end if; end;
+  perform set_config('request.jwt.claim.sub',fixture->>'owner',true);
+  result:=public.import_library_songs(t,batch,'Permission fixture',jsonb_build_array(base));
+  imported:=(result->'created'->0->>'id')::uuid;
+  assert jsonb_array_length(result->'created')=1;
+  assert exists(select 1 from public.songs where id=imported and source_type='propresenter_native' and source_filename='Song.PRO' and permission_basis='Permission fixture' and lyrics=base->>'lyrics' and default_time_signature='4/4' and default_bpm is null and writer_credits='Fixture writer');
+  assert public.import_library_songs(t,batch,'Permission fixture',jsonb_build_array(base))=result, 'Identical native retry';
+  begin perform public.import_library_songs(t,batch,'Permission fixture',jsonb_build_array(base||'{"source_filename":"Song.propresenter"}'::jsonb)); raise exception 'Changed native payload accepted'; exception when sqlstate 'PT409' then null; end;
+  result:=public.import_library_songs(t,gen_random_uuid(),'Permission fixture',jsonb_build_array(base||'{"source_filename":"Song.txt","lyrics":"Do not overwrite"}'::jsonb));
+  assert jsonb_array_length(result->'created')=0 and jsonb_array_length(result->'skipped')=1, 'Native/TXT same song identity';
+  assert exists(select 1 from public.songs where id=imported and source_type='propresenter_native' and lyrics=base->>'lyrics'), 'Duplicate never alters provenance/lyrics';
+  result:=public.import_library_songs(t,gen_random_uuid(),'Permission fixture',jsonb_build_array(base||'{"source_filename":"Other.propresenter","title":"Other Native"}'::jsonb));
+  assert exists(select 1 from public.songs where id=(result->'created'->0->>'id')::uuid and source_type='propresenter_native'), 'PP7 alias provenance';
+  select count(*) into count_before from public.songs where public.songs.team_id=t;
+  begin perform public.import_library_songs(t,gen_random_uuid(),'Permission fixture',jsonb_build_array(base||'{"title":"Must roll back"}'::jsonb,base||'{"source_filename":"Media.proBundle"}'::jsonb)); raise exception 'Bundle accepted'; exception when others then if sqlerrm='Bundle accepted' then raise; end if; end;
+  assert (select count(*) from public.songs where public.songs.team_id=t)=count_before, 'Mixed native batch atomic';
+  begin perform public.import_library_songs(t,gen_random_uuid(),'Permission fixture',jsonb_build_array(base||'{"source_filename":"folder/Song.pro"}'::jsonb)); raise exception 'Unsafe name accepted'; exception when others then if sqlerrm='Unsafe name accepted' then raise; end if; end;
+end $$;
+rollback;

@@ -91,9 +91,9 @@ export function SongScreen({ route, navigation }: Props<"Song">) {
         <>
           <Title>{song.title}</Title>
           <Body>{song.artist || "Artis belum diisi"}</Body>
-          {song.source_type === "propresenter_text" && (
-            <Body muted>Sumber: ProPresenter · {song.source_filename}</Body>
-          )}
+          {["propresenter_text", "propresenter_native"].includes(
+            song.source_type ?? "",
+          ) && <Body muted>Sumber: ProPresenter · {song.source_filename}</Body>}
           {editor && song.permission_basis && (
             <Body muted>Dasar izin: {song.permission_basis}</Body>
           )}

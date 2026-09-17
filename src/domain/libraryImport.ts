@@ -1,3 +1,4 @@
+import { parseProPresenterFile } from "./proPresenter";
 export const IMPORT_LIMITS = {
   files: 50,
   fileBytes: 100 * 1024,
@@ -10,6 +11,7 @@ export interface LibraryIdentity {
   artist: string | null;
 }
 export interface ImportCandidate {
+  parse_warnings?: string[];
   id: string;
   selected: boolean;
   source_filename: string;
@@ -44,7 +46,7 @@ export function identityKey(title: string, artist: string | null): string {
 }
 export function assertFileBounds(sizes: number[]) {
   if (!sizes.length || sizes.length > IMPORT_LIMITS.files)
-    throw Error("Pilih 1–50 file .txt.");
+    throw Error("Pilih 1–50 file .txt/.pro/.propresenter.");
   if (
     sizes.some(
       (size) =>
@@ -149,23 +151,25 @@ export function candidateFromFile(
   id: string,
 ): ImportCandidate {
   if (
-    !/\.txt$/i.test(name) ||
+    !/\.(txt|pro|propresenter)$/i.test(name) ||
     /[\\/\u0000-\u001f]/.test(name) ||
     name.length > 255
   )
     throw Error(
-      "Gunakan file .txt dengan nama file yang valid (maks. 255 karakter).",
+      "Gunakan .txt/.pro/.propresenter dengan nama file valid (maks. 255 karakter).",
     );
   assertFileBounds([bytes.length]);
+  const native = !/\.txt$/i.test(name) ? parseProPresenterFile(bytes) : null;
   return {
     id,
     selected: true,
     source_filename: name,
-    title: name.slice(0, -4).trim(),
-    lyrics: decodeSongText(bytes),
-    artist: "",
-    writer_credits: "",
-    copyright_notice: "",
+    title: name.replace(/\.(txt|pro|propresenter)$/i, "").trim(),
+    lyrics: native?.lyrics ?? decodeSongText(bytes),
+    artist: native?.artist ?? "",
+    writer_credits: native?.writer_credits ?? "",
+    copyright_notice: native?.copyright_notice ?? "",
+    ...(native ? { parse_warnings: native.warnings } : {}),
     key: "",
     bpm: "",
     time_signature: "4/4",

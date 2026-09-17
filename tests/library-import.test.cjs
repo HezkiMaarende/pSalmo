@@ -434,7 +434,7 @@ test("Import screen previews locally, defaults duplicate skip, freezes failed co
       (node) => node.props.label === label || node.props.title === label,
     );
   const flush = () => new Promise((resolve) => setImmediate(resolve));
-  find("Pilih file .txt · maksimal 50").props.onPress();
+  find("Pilih .txt / .pro / .propresenter · maksimal 50").props.onPress();
   await flush();
   assert.deepEqual(calls, [["pick"], ["read"]]);
   assert.equal(find("Pilih file 2").props.disabled, true);

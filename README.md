@@ -44,7 +44,7 @@ Latihan has separate Edit/Play modes, service-specific BPM/birama/notes, tap tem
 
 ## Populate Song Bank
 
-Authorized library editors can use **Song Bank → Import dari ProPresenter** to review one `.txt` export per song and confirm a create-only bulk import. Existing songs are skipped, not replaced; failed requests retry with an immutable batch UUID. The native picker requires a rebuilt APK. See [docs/library-import.md](docs/library-import.md); first trial5–10 songs from the church's authorized collection.
+Authorized library editors can use **Song Bank → Import dari ProPresenter** to review one PP7 `.pro` (or supported `.propresenter` alias) or `.txt` export per song and confirm a create-only bulk import. Native files use read-only bounded protobuf/RTF parsing with actual section labels; repeated choruses remain. Existing songs are skipped, not replaced; failed requests retry with an immutable batch UUID. The native picker requires the picker-enabled APK; native-format parsing itself adds no new native dependency. See [docs/library-import.md](docs/library-import.md) and [native boundaries](docs/propresenter-native.md); first trial5–10 songs from the church's authorized collection.
 
 ## Local WhatsApp song review
 

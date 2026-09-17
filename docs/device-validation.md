@@ -10,6 +10,8 @@ Metronome/runtime/timing/IEM checks are **deferred at the user's request** while
 
 ## ProPresenter Song Bank import
 
+- [ ] Select a real `.pro` alongside a TXT song: inspect real section labels, preserved repetitions and missing CCLI attribution; confirm only after checking permission. `.propresenter` must contain the same supported PP7 bytes. Unsupported legacy/bundle/corrupt files show a TXT fallback and clean only owned cache copies; originals are unchanged. Native/TXT duplicate identities skip without replacing canonical data.
+
 - [ ] Install the rebuilt APK; choose/cancel text files from Android file providers without broad storage access. Source files remain unchanged; importer cache cleanup works.
 - [ ] Trial5–10 actual church songs: verify title/artis/lirik, headings/repeated choruses, attribution/permission,4/4 defaults and explicit key/BPM/meter.
 - [ ] Skip duplicate/existing candidates; edit/skipped states, keyboard/font scaling, both themes, permission note and confirm/cancel/Back work.

@@ -96,9 +96,9 @@ export function LibraryImportScreen({
     <Page>
       <Title>Import dari ProPresenter</Title>
       <Body muted>
-        Ekspor satu lagu per file .txt. Teks dibaca lokal; tidak ada AI, upload
-        file sumber, atau perubahan daftar ibadah. Periksa judul/lirik dan izin
-        sebelum konfirmasi.
+        Pilih satu lagu per file .txt, .pro atau .propresenter (format PP7).
+        Teks dibaca lokal; tidak ada AI, upload file sumber, atau perubahan
+        daftar ibadah. Periksa judul/lirik dan izin sebelum konfirmasi.
       </Body>
       <Body muted>
         Picker memerlukan APK baru setelah penambahan modul native: jalankan npm
@@ -109,7 +109,7 @@ export function LibraryImportScreen({
       {!authorized && <Body>Akses editor Song Bank tidak tersedia.</Body>}
       {authorized && (
         <Button
-          title="Pilih file .txt · maksimal 50"
+          title="Pilih .txt / .pro / .propresenter · maksimal 50"
           disabled={frozen || !!candidates.length}
           onPress={() =>
             void action.run(async () => {
@@ -135,8 +135,9 @@ export function LibraryImportScreen({
           <Body muted>
             Maks. 100KiB/file dan 2MiB/batch. Judul berasal dari nama file;
             pindahkan footer/kredit ke kolom yang tepat bila diperlukan. File
-            gabungan harus diekspor ulang per lagu. Duplikat judul+artis
-            dilewati, tidak ditimpa.
+            gabungan harus dipisah per lagu. Native dibaca sebagai PP7, bukan
+            bundle/media; file yang tidak didukung dapat diekspor sebagai .txt.
+            Duplikat judul+artis dilewati, tidak ditimpa.
           </Body>
           <Field
             label="Dasar izin penyimpanan dan berbagi lirik"
@@ -150,6 +151,9 @@ export function LibraryImportScreen({
               <Title>
                 {index + 1}. {candidate.source_filename}
               </Title>
+              {candidate.parse_warnings?.map((message, warningIndex) => (
+                <Body key={warningIndex}>{message}</Body>
+              ))}
               <Body>
                 {duplicates.has(candidate.id)
                   ? "Duplikat — dilewati. Ubah judul/artis hanya jika memang lagu/versi berbeda."

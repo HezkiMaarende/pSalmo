@@ -1,0 +1,24 @@
+# Native ProPresenter song import
+
+Song Bank → Import dari ProPresenter accepts `.txt` and read-only PP7 `.pro` payloads. `.propresenter` is accepted only as a filename alias **when the bytes are the same supported PP7 protobuf format**; this is not a claim that every file using that extension is PP7. Older XML `.pro6`, bundles, playlists, media and alternate versions are not supported. Export `.txt` when parsing reports an unsupported/corrupt file.
+
+`src/domain/proPresenter.ts` provides `parseProPresenterLyrics(Uint8Array | ArrayBuffer | string): string`. Binary input includes Node Buffers in tooling; string input is standalone RTF for testing. `parseProPresenterFile` also returns actual CCLI artist/author/publisher/year and review warnings. Neither API writes files, invokes native modules, downloads data or calls AI.
+
+## Extraction and boundaries
+
+- Bounded wire reader follows Presentation.cues → Cue.actions → Action.slide.presentation.base_slide → Slide.elements → Graphics.Element.text.rtf_data. It does **not** search arbitrary binary bytes for RTF; speaker notes, templates and unrelated metadata cannot become lyrics merely by containing an RTF block.
+- Use actual cue-group names as section headings and the library's group/reference order, **not the selected playback arrangement**. Ungrouped slides retain blank-line separators; no Verse/Chorus guesses. Missing references, conflicting cue identities and malformed wire fields fail explicitly.
+- RTF uses a balanced, depth-bounded tokenizer. Ignore formatting/font/color/metadata destinations; preserve escaped literal characters and `par`/`line` breaks. Support signed Unicode escapes, scoped fallback counts, surrogate pairs, Unicode-vs-ANSI alternatives, CP1252, Latin1 and declared UTF8 bytes. Unsupported legacy byte code pages fail rather than inventing replacement characters. Whitespace-only edges are trimmed per line; isolated UUID lines and single punctuation artifacts are removed. Avoid lookbehind; Unicode category detection is constructed defensively, with conservative punctuation-only filtering on engines lacking that feature (never erase unknown-script letters).
+- Deduplicate identical **whole text elements within one cue**, where duplicate presentation layers can repeat the same block. Preserve every repeated line inside an element and every repetition across slides/group references. Global line deduplication would erase intentional choruses and is not implemented.
+- Skip hidden and dynamically linked elements. Other static slide text (titles, footer credits, translation columns) may still be present: reviewers must inspect all output and move/remove non-lyrics manually. CCLI metadata is reviewable attribution, not proof of permission. Only file-provided artist/credits are prefilled; title starts from filename, meter defaults4/4, key/BPM stay blank.
+- Existing importer limits remain50 files,100KiB per file,2MiB total. No archive/media expansion. Review remains local/in-memory, owned cache copies only are cleaned, original `.pro` files are never deleted/modified/uploaded or stored. Confirmed RPCs upload reviewed canonical text only, retaining create-only duplicate and immutable-retry protections. Native provenance is `propresenter_native`; TXT remains `propresenter_text`.
+
+## Format sources
+
+Field numbers were inspected in the [schema author's MIT-licensed reverse-engineered definitions](https://github.com/greyshirtguy/ProPresenter7-Proto/tree/master/autogen-proto): presentation, cue, action, presentationSlide, slide, graphicsData, groups and uuid. These are unofficial, not a vendor compatibility guarantee. The parser is independently implemented as a small read-only subset, not a vendored generated schema. [Renewed Vision file guidance](https://learn.renewedvision.com/propresenter/working-with-files) distinguishes presentations from bundles. RTF destination/Unicode behavior follows [Microsoft's RTF extension documentation](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-oxrtfex/205e1abf-b794-4fd0-b1e4-5210882233ab).
+
+## Validation still required
+
+Committed tests use synthetic wire messages and synthetic RTF, never licensed church exports. One user-supplied27872-byte `.pro` was parsed read-only locally: four actual sections,21 lyric lines, no style/UUID noise, source hash unchanged. Its empty CCLI attribution was not invented. Neither the original, its lyrics nor its parsed result was committed/uploaded to a service/database.
+
+Other church file versions, file-provider selection, both themes and phone review still require actual device trials. No repertoire population or native-format device success is claimed. There are no new native dependencies; reload the existing picker-enabled development app through Metro, or rebuild a standalone preview to include the JS feature. Metronome/Hermes/timing/IEM remain unchecked and deferred.

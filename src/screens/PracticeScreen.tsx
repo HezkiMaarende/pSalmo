@@ -32,6 +32,7 @@ export function PracticeScreen({
   navigation,
 }: NativeStackScreenProps<RootRoutes, "Practice">) {
   const { colors } = useTheme();
+  const player = useClickPlayer();
   const [editorState, setEditorState] = useState({ dirty: false, busy: false });
   usePreventRemove(editorState.dirty || editorState.busy, ({ data }) => {
     if (editorState.busy) return;
@@ -54,6 +55,9 @@ export function PracticeScreen({
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <Feedback loading={state.loading} error={state.error} />
+      {!state.data && (player.playing || player.starting) && (
+        <Button title="Stop metronome" onPress={() => player.stop()} />
+      )}
       {state.error && (
         <Button title="Coba muat ulang" onPress={() => void state.reload()} />
       )}
@@ -134,6 +138,9 @@ function PracticeSession({
     return (
       <Card>
         <Title>Belum ada lagu</Title>
+        {(player.playing || player.starting) && (
+          <Button title="Stop metronome" onPress={() => player.stop()} />
+        )}
         <Body>Tambahkan daftar lagu sebelum memulai latihan.</Body>
         {detail.can_edit && (
           <Button title="Tambah lagu ke ibadah" onPress={onAdd} />

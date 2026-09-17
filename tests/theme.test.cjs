@@ -7,6 +7,28 @@ const {
   ThemePreference,
 } = require("../.test-build/theme");
 
+test("Both palettes keep normal text and primary-button contrast above 4.5:1", () => {
+  const luminance = (hex) => {
+    const values = hex
+      .slice(1)
+      .match(/../g)
+      .map((value) => parseInt(value, 16) / 255)
+      .map((value) =>
+        value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+      );
+    return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+  };
+  const contrast = (a, b) =>
+    (Math.max(luminance(a), luminance(b)) + 0.05) /
+    (Math.min(luminance(a), luminance(b)) + 0.05);
+  for (const colors of Object.values(palettes)) {
+    assert.ok(contrast(colors.ink, colors.background) >= 4.5);
+    assert.ok(contrast(colors.muted, colors.surface) >= 4.5);
+    assert.ok(contrast(colors.onAccent, colors.teal) >= 4.5);
+    assert.ok(contrast("#FFFFFF", colors.transport) >= 4.5);
+  }
+});
+
 test("Light is the default, invalid stored values never follow the phone theme", async () => {
   for (const value of [null, "", "system", "DARK", "corrupt"])
     assert.equal(parseThemeMode(value), "light");

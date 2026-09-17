@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { View, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Routes, RootRoutes } from "../navigation/types";
+import { useNavigation, usePreventRemove } from "@react-navigation/native";
+import { useClickPlayer } from "../context/ClickPlayerContext";
 import { useChurch } from "../context/ChurchContext";
 import * as api from "../lib/church";
 import { dateLabel } from "../domain/calendar";
@@ -529,9 +531,17 @@ export function AddSongsScreen({ route }: Props<"AddSongs">) {
 export function MetronomeAddSongsScreen({
   route,
 }: NativeStackScreenProps<RootRoutes, "MetronomeAddSongs">) {
-  return <AddSongsContent serviceId={route.params.serviceId} />;
+  return <AddSongsContent serviceId={route.params.serviceId} metronome />;
 }
-function AddSongsContent({ serviceId }: { serviceId: string }) {
+function AddSongsContent({
+  serviceId,
+  metronome = false,
+}: {
+  serviceId: string;
+  metronome?: boolean;
+}) {
+  const player = useClickPlayer();
+  const navigation = useNavigation();
   const [raw, setRaw] = useState("");
   const [query, setQuery] = useState("");
   const state = useLoad(
@@ -543,9 +553,27 @@ function AddSongsContent({ serviceId }: { serviceId: string }) {
   );
   const a = useAction();
   const [message, setMessage] = useState("");
+  usePreventRemove(!!raw.trim() || a.busy, ({ data }) => {
+    if (a.busy) return;
+    Alert.alert(
+      "Judul belum ditambahkan",
+      "Kembali tanpa menambahkan judul manual?",
+      [
+        { text: "Tetap di sini", style: "cancel" },
+        {
+          text: "Abaikan",
+          style: "destructive",
+          onPress: () => navigation.dispatch(data.action),
+        },
+      ],
+    );
+  });
   return (
     <Page>
       <Title>Tambah lagu</Title>
+      {metronome && (player.playing || player.starting) && (
+        <Button title="Stop metronome" onPress={() => player.stop()} />
+      )}
       <Feedback loading={state.loading} error={state.error || a.error} />
       <Body>{message}</Body>
       {state.data?.detail.can_edit && (
@@ -553,6 +581,7 @@ function AddSongsContent({ serviceId }: { serviceId: string }) {
           <Card>
             <Field
               label="Judul manual · satu per baris"
+              disabled={a.busy}
               value={raw}
               onChangeText={setRaw}
               multiline

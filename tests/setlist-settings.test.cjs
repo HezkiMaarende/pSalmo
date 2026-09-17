@@ -60,6 +60,8 @@ test("Setlist settings send one atomic snapshot update, never a canonical song w
           };
         if (name === "../domain/metronome")
           return require("../.test-build/metronome");
+        if (name === "../domain/songLabel")
+          return require("../.test-build/songLabel");
         if (name === "../domain/youtube")
           return require("../.test-build/youtube");
         throw new Error(name);

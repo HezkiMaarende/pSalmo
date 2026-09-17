@@ -33,3 +33,13 @@ test("Navigation chrome and draft guards are separate from the long-lived player
     /<ClickPlayerProvider>[\s\S]*<NavigationChromeProvider>/,
   );
 });
+test("Hidden-player routes expose Stop during loading, empty content and AddSongs", () => {
+  const practice = read("src/screens/PracticeScreen.tsx");
+  assert.match(
+    practice,
+    /!state.data && \(player.playing \|\| player.starting\)/,
+  );
+  const service = read("src/screens/ServiceScreens.tsx");
+  assert.match(service, /metronome && \(player.playing \|\| player.starting\)/);
+  assert.match(service, /usePreventRemove\(!!raw.trim\(\) \|\| a.busy/);
+});

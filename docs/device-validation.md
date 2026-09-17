@@ -14,6 +14,19 @@ Background-click revision (17 September): rebuild/install the development APK be
 
 ## Exercise
 
+### Five-phase revision acceptance · 17 September
+
+Automated checks currently pass TypeScript, 44 unit/mock/source-contract tests, complete rollback SQL role/snapshot/default-meter fixtures, and Android JS export (1002 modules,1.98MB). These do not establish native UI behavior or real-device timing. CI for phases1–4 is successful. Native appearance rebuild is being tracked separately in PROGRESS.md.
+
+- [ ] First launch is Light even on a Dark phone; Profil → Tampilan switches every app page and Metronome immediately. Dark selection survives process restart, sign-out and another account. There is no System option.
+- [ ] Change theme with an unsaved Setlist draft and while clicks are active: draft, current route, selected song and playback remain intact. Verify native Alert/keyboard, loading/error surfaces, drawer and popup; YouTube/OS permission content is not recolored.
+- [ ] New manual song defaults to4/4 with no default BPM. Song Bank additions preserve explicit3/4 or6/8. Popup has36 options and no unset action; Cancel/system Back/backdrop preserve the draft.
+- [ ] Save title/key/BPM/birama/notes, reopen and confirm `Title - E` (or title-only without key), metadata and mini-player labels. Canonical Song Bank and other services stay unchanged. No automatic chord transposition.
+- [ ] Open Metronome from service details under Beranda/Jadwal/Song Bank targets: no main tabs, duplicate bar or leftover space. Its Add route also has no tabs; regular service Add retains tabs. Back returns to the same tab/detail and active audio continues.
+- [ ] Entering editable Setlist stops clicks. Dirty draft Back/song/view/Add prompts; cancel retains edits. Busy save blocks leaving. Stop cancels pending activation, including while Metronome loads/errors or Add is open.
+- [ ] Both themes work with large font scaling, keyboard and portrait safe areas; controls remain reachable and at least48dp. Lock screen/open another app for at leastfive minutes per test, then Stop from notification/global bar. Record audible continuity and interruption behavior, not only a stopwatch.
+- [ ] Independently inspect Hermes runtime, measure actual click timing and verify native route/IEM safety on the real phone/mixer before live use. Synthetic PCM rounding tests are not these measurements.
+
 - [ ] All five tabs, stack back buttons, Android system back, tab switching while inside details, menu overlay/back/dismiss, font scaling, and touch targets work.
 - [ ] PIC adds a name before signup; linking an unregistered email fails; linking after signup immediately grants church membership. Roster names do not change when profile names change.
 - [ ] PIC creates upcoming IR 1 & 2 and IR 3, enters multiple people per role and guest/group labels, and publishes the schedule independently of setlist approval.

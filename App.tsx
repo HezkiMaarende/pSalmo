@@ -70,11 +70,11 @@ export default function App() {
   );
 }
 function ThemedApp() {
-  const { mode, colors } = useTheme();
+  const { colors } = useTheme();
   return (
     <>
-      <StatusBar style={mode === "dark" ? "light" : "dark"} />
       <ChurchProvider>
+        <AppStatusBar />
         <ClickPlayerProvider>
           <NavigationChromeProvider>
             <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -85,5 +85,20 @@ function ThemedApp() {
         </ClickPlayerProvider>
       </ChurchProvider>
     </>
+  );
+}
+function AppStatusBar() {
+  const { mode } = useTheme();
+  const church = useChurch();
+  return (
+    <StatusBar
+      style={
+        church.membership && !church.loading
+          ? "light"
+          : mode === "dark"
+            ? "light"
+            : "dark"
+      }
+    />
   );
 }

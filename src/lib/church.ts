@@ -7,6 +7,7 @@ import type {
 } from "../domain/service";
 import { youtubeId } from "../domain/youtube";
 import { defaultMeter } from "../domain/metronome";
+import { requiredSongTitle } from "../domain/songLabel";
 export const CHURCH_NAME = "GPdI Elshaddai Magelang";
 export const churchId = process.env.EXPO_PUBLIC_CHURCH_TEAM_ID || "";
 export interface Membership {
@@ -548,10 +549,15 @@ export async function saveArrangement(
 // Selecting the updated row also detects a rejected/no-op RLS update.
 export async function saveSetlistSettings(
   id: string,
-  input: { title: string; key: string; bpm: string; signature: string; notes: string },
+  input: {
+    title: string;
+    key: string;
+    bpm: string;
+    signature: string;
+    notes: string;
+  },
 ): Promise<void> {
-  const title = input.title.trim();
-  if (!title) throw new Error("Judul lagu wajib diisi.");
+  const title = requiredSongTitle(input.title);
   const r = await supabase
     .from("setlist_items")
     .update({

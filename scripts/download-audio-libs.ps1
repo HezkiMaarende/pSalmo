@@ -1,4 +1,8 @@
 $ErrorActionPreference = 'Stop'
+# Gradle may inherit a PS7-only module search path while launching Windows PS5.
+# Load the shipped modules explicitly rather than changing the user's environment.
+Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Utility') -ErrorAction Stop
+Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Archive') -ErrorAction Stop
 $taskRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $taskPackage = Join-Path $taskRoot 'node_modules\react-native-audio-api'
 $taskDownloader = Get-Content -LiteralPath (Join-Path $taskPackage 'scripts\download-prebuilt-binaries.sh') -Raw

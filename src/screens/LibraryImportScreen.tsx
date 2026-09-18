@@ -35,16 +35,14 @@ export function LibraryImportScreen({
     !!membership && (membership.role !== "member" || membership.song_editor);
   const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
   const [identities, setIdentities] = useState<LibraryIdentity[]>([]);
-  const [permission, setPermission] = useState("");
   const [warning, setWarning] = useState("");
   const [result, setResult] = useState<LibraryImportResult | null>(null);
   const [confirmed, setConfirmed] = useState<{
     id: string;
-    permission: string;
     entries: LibraryImportEntry[];
   } | null>(null);
   const action = useAction();
-  const dirty = !!candidates.length || !!permission.trim() || !!confirmed;
+  const dirty = !!candidates.length || !!confirmed;
   const frozen = action.busy || !!confirmed || !authorized;
   const duplicates = duplicateCandidates(candidates, identities);
   usePreventRemove(dirty || action.busy, ({ data }) => {
@@ -76,20 +74,14 @@ export function LibraryImportScreen({
     });
   }
   async function commit(batch: NonNullable<typeof confirmed>) {
-    const response = await api.importLibrarySongs(
-      batch.id,
-      batch.permission,
-      batch.entries,
-    );
+    const response = await api.importLibrarySongs(batch.id, "", batch.entries);
     setResult(response);
     setCandidates([]);
     setConfirmed(null);
-    setPermission("");
   }
   function reset() {
     setCandidates([]);
     setConfirmed(null);
-    setPermission("");
     setWarning("");
   }
   return (
@@ -98,7 +90,7 @@ export function LibraryImportScreen({
       <Body muted>
         Pilih satu lagu per file .txt, .pro atau .propresenter (format PP7).
         Teks dibaca lokal; tidak ada AI, upload file sumber, atau perubahan
-        daftar ibadah. Periksa judul/lirik dan izin sebelum konfirmasi.
+        daftar ibadah. Periksa judul, lirik, dan attribution sebelum konfirmasi.
       </Body>
       <Body muted>
         Picker memerlukan APK baru setelah penambahan modul native: jalankan npm
@@ -139,13 +131,6 @@ export function LibraryImportScreen({
             bundle/media; file yang tidak didukung dapat diekspor sebagai .txt.
             Duplikat judul+artis dilewati, tidak ditimpa.
           </Body>
-          <Field
-            label="Dasar izin penyimpanan dan berbagi lirik"
-            value={permission}
-            onChangeText={setPermission}
-            disabled={frozen}
-            multiline
-          />
           {candidates.map((candidate, index) => (
             <Card key={candidate.id}>
               <Title>
@@ -212,16 +197,14 @@ export function LibraryImportScreen({
             <Button
               title={`Konfirmasi import ${candidates.filter((candidate) => candidate.selected).length} lagu baru`}
               disabled={
-                frozen ||
-                !permission.trim() ||
-                !candidates.some((candidate) => candidate.selected)
+                frozen || !candidates.some((candidate) => candidate.selected)
               }
               onPress={() =>
                 void action.run(async () => {
-                  const entries = importEntries(candidates, permission);
+                  const entries = importEntries(candidates);
                   Alert.alert(
                     "Import ke Song Bank?",
-                    "Saya mengonfirmasi izin penyimpanan/berbagi lirik dan telah meninjau teks/attribution. Lagu existing tidak ditimpa.",
+                    "Simpan lagu yang dipilih setelah meninjau teks/attribution? Lagu existing tidak ditimpa.",
                     [
                       { text: "Batal", style: "cancel" },
                       {
@@ -230,7 +213,6 @@ export function LibraryImportScreen({
                           void action.run(async () => {
                             const batch = {
                               id: Crypto.randomUUID(),
-                              permission: permission.trim(),
                               entries,
                             };
                             setConfirmed(batch);

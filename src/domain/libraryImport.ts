@@ -192,12 +192,10 @@ export function duplicateCandidates(
 }
 export function importEntries(
   candidates: ImportCandidate[],
-  permission: string,
+  permission = "",
 ): LibraryImportEntry[] {
-  if (!permission.trim() || permission.trim().length > 2000)
-    throw Error(
-      "Isi dasar izin penyimpanan/berbagi lirik (maks. 2.000 karakter).",
-    );
+  if (permission.trim().length > 2000)
+    throw Error("Catatan import maksimal 2.000 karakter.");
   const selected = candidates.filter((candidate) => candidate.selected);
   if (!selected.length || selected.length > 50) throw Error("Pilih 1–50 lagu.");
   return selected.map((candidate) => {

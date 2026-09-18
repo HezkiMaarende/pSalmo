@@ -121,7 +121,7 @@ test("Duplicate identity normalizes case/whitespace/null artist while preserving
     domain.identityKey("lagu cinta", ""),
   );
 });
-test("Reviewed payload requires permission and valid fields, preserves lyrics and never guesses BPM", () => {
+test("Reviewed payload permits no note, validates fields, preserves lyrics and never guesses BPM", () => {
   const a = candidate(),
     b = candidate("Skip");
   b.selected = false;
@@ -140,7 +140,9 @@ test("Reviewed payload requires permission and valid fields, preserves lyrics an
     assert.throws(() =>
       domain.importEntries([{ ...a, ...values }], "Permission"),
     );
-  assert.throws(() => domain.importEntries([a], " "));
+  assert.equal(domain.importEntries([a]).length, 1);
+  assert.equal(domain.importEntries([a], " ").length, 1);
+  assert.throws(() => domain.importEntries([a], "x".repeat(2001)));
   assert.throws(() => domain.importEntries([], "Permission"));
   assert.equal(
     domain.importEntries(
@@ -171,6 +173,118 @@ function load(file, requireFn) {
   });
   return module.exports;
 }
+test("Compact Song Bank rows open details; editor menu routes, dismisses and hides for members in both themes", () => {
+  const palettes = require("../.test-build/theme").palettes;
+  for (const colors of Object.values(palettes)) {
+    const states = [],
+      calls = [];
+    let cursor = 0;
+    const membership = { role: "member", song_editor: true };
+    const react = {
+      createElement(type, props, ...children) {
+        return { type, props: { ...props, children } };
+      },
+      useState(initial) {
+        const i = cursor++;
+        if (!(i in states)) states[i] = initial;
+        return [
+          states[i],
+          (v) => {
+            states[i] = typeof v === "function" ? v(states[i]) : v;
+          },
+        ];
+      },
+    };
+    const screens = load("src/screens/LibraryScreens.tsx", (name) => {
+      if (name === "react")
+        return { __esModule: true, default: react, ...react };
+      if (name === "react-native")
+        return {
+          Modal: "Modal",
+          Pressable: "Pressable",
+          Text: "Text",
+          View: "View",
+        };
+      if (name === "react-native-safe-area-context")
+        return { SafeAreaView: "SafeAreaView" };
+      if (name === "../context/ChurchContext")
+        return { useChurch: () => ({ membership }) };
+      if (name === "../lib/church") return { listSongs() {} };
+      if (name === "../components/ui")
+        return {
+          Page: "Page",
+          Title: "Title",
+          Field: "Field",
+          Feedback: "Feedback",
+          Body: "Body",
+          Button: "Button",
+          useUi: () => ({ colors }),
+          useLoad: () => ({
+            loading: false,
+            data: [
+              {
+                id: "song-id",
+                title: "Small song",
+                artist: "Artist",
+                default_key: "E",
+                default_bpm: 100,
+              },
+            ],
+          }),
+        };
+      return {};
+    });
+    const navigation = { navigate: (...args) => calls.push(args) };
+    const flat = (node) =>
+      !node || typeof node !== "object"
+        ? []
+        : Array.isArray(node)
+          ? node.flatMap(flat)
+          : [node, ...flat(node.props.children)];
+    const render = () => {
+      cursor = 0;
+      return flat(screens.LibraryScreen({ navigation }));
+    };
+    const find = (label) =>
+      render().find((n) => n.props.accessibilityLabel === label);
+    const modal = () => render().find((n) => n.type === "Modal");
+    assert.equal(
+      render().filter((n) => n.type === "Button").length,
+      0,
+      "No large row/add/import buttons",
+    );
+    const row = find("Buka detail Small song, Artist");
+    assert.equal(row.props.style({ pressed: false }).minHeight, 64);
+    assert.equal(
+      row.props.style({ pressed: false }).backgroundColor,
+      colors.surface,
+    );
+    row.props.onPress();
+    assert.deepEqual(JSON.parse(JSON.stringify(calls.pop())), [
+      "Song",
+      { id: "song-id" },
+    ]);
+    assert.equal(modal().props.visible, false);
+    find("Tambah atau import lagu").props.onPress();
+    assert.equal(modal().props.visible, true);
+    assert.equal(find("Tambah atau import lagu").props.style.minHeight, 48);
+    find("Tambah lagu baru").props.onPress();
+    assert.equal(modal().props.visible, false);
+    assert.equal(calls.pop()[0], "SongEdit");
+    find("Tambah atau import lagu").props.onPress();
+    find("Import dari ProPresenter").props.onPress();
+    assert.equal(calls.pop()[0], "LibraryImport");
+    find("Tambah atau import lagu").props.onPress();
+    modal().props.onRequestClose();
+    assert.equal(modal().props.visible, false);
+    find("Tambah atau import lagu").props.onPress();
+    find("Tutup menu lagu").props.onPress();
+    assert.equal(modal().props.visible, false);
+    membership.song_editor = false;
+    assert.equal(find("Tambah atau import lagu"), undefined);
+    assert.equal(modal().props.visible, false);
+  }
+});
 test("Picker cancel reads/deletes nothing; owned cache only is cleaned on success and failure", async () => {
   let canceled = true,
     assetName = "Lagu.txt";
@@ -438,9 +552,8 @@ test("Import screen previews locally, defaults duplicate skip, freezes failed co
   await flush();
   assert.deepEqual(calls, [["pick"], ["read"]]);
   assert.equal(find("Pilih file 2").props.disabled, true);
-  find("Dasar izin penyimpanan dan berbagi lirik").props.onChangeText(
-    "Church permission",
-  );
+  assert.equal(find("Dasar izin penyimpanan dan berbagi lirik"), undefined);
+  assert.equal(find("Konfirmasi import 1 lagu baru").props.disabled, false);
   find("Konfirmasi import 1 lagu baru").props.onPress();
   await flush();
   assert.equal(calls.filter((call) => call[0] === "commit").length, 0);
@@ -449,10 +562,8 @@ test("Import screen previews locally, defaults duplicate skip, freezes failed co
   const first = calls.find((call) => call[0] === "commit");
   assert.equal(first[1], "frozen-batch");
   assert.equal(first[3].length, 1);
-  assert.equal(
-    find("Dasar izin penyimpanan dan berbagi lirik").props.disabled,
-    true,
-  );
+  assert.equal(first[2], ""); // No invented permission note sent to the RPC.
+  assert.equal(find("Judul Lagu · file 1").props.disabled, true);
   assert.equal(guards.at(-1).enabled, true);
   membership.song_editor = false;
   assert.equal(find("Coba ulang batch yang sama").props.disabled, true);

@@ -13,7 +13,7 @@ do $$ declare fixture jsonb:=current_setting('psalmo.native_fixture')::jsonb;
   base jsonb:='{"source_filename":"Song.PRO","title":"Native Song","artist":"Artist","lyrics":"[Verse 1]\nOriginal fixture\nOriginal fixture\n\n[Chorus]\nRepeated fixture","writer_credits":"Fixture writer","copyright_notice":"Fixture publisher","key":"","bpm":null,"time_signature":"4/4"}';
 begin
   perform set_config('request.jwt.claim.sub',fixture->>'member',true);
-  begin perform public.import_library_songs(t,batch,'Permission fixture',jsonb_build_array(base)); raise exception 'Member imported native'; exception when others then if sqlerrm='Member imported native' then raise; end if; end;
+  begin perform public.import_library_songs(t,batch,'',jsonb_build_array(base)); raise exception 'Member imported native'; exception when others then if sqlerrm='Member imported native' then raise; end if; end;
   perform set_config('request.jwt.claim.sub',fixture->>'owner',true);
   result:=public.import_library_songs(t,batch,'Permission fixture',jsonb_build_array(base));
   imported:=(result->'created'->0->>'id')::uuid;
@@ -26,6 +26,14 @@ begin
   assert exists(select 1 from public.songs where id=imported and source_type='propresenter_native' and lyrics=base->>'lyrics'), 'Duplicate never alters provenance/lyrics';
   result:=public.import_library_songs(t,gen_random_uuid(),'Permission fixture',jsonb_build_array(base||'{"source_filename":"Other.propresenter","title":"Other Native"}'::jsonb));
   assert exists(select 1 from public.songs where id=(result->'created'->0->>'id')::uuid and source_type='propresenter_native'), 'PP7 alias provenance';
+  batch:=gen_random_uuid();
+  result:=public.import_library_songs(t,batch,'',jsonb_build_array(base||'{"title":"Without permission note"}'::jsonb));
+  assert exists(select 1 from public.songs where id=(result->'created'->0->>'id')::uuid and permission_basis is null and writer_credits='Fixture writer'), 'No note required, no permission invented, attribution preserved';
+  assert public.import_library_songs(t,batch,'',jsonb_build_array(base||'{"title":"Without permission note"}'::jsonb))=result, 'No-note identical retry';
+  begin perform public.import_library_songs(t,batch,'Changed note',jsonb_build_array(base||'{"title":"Without permission note"}'::jsonb)); raise exception 'Changed no-note payload accepted'; exception when sqlstate 'PT409' then null; end;
+  result:=public.import_library_songs(t,gen_random_uuid(),null,jsonb_build_array(base||'{"title":"Null permission note"}'::jsonb));
+  assert exists(select 1 from public.songs where id=(result->'created'->0->>'id')::uuid and permission_basis is null), 'Null note supported by existing API signature';
+  begin perform public.import_library_songs(t,gen_random_uuid(),repeat('x',2001),jsonb_build_array(base||'{"title":"Overlong note"}'::jsonb)); raise exception 'Overlong note accepted'; exception when others then if sqlerrm='Overlong note accepted' then raise; end if; end;
   select count(*) into count_before from public.songs where public.songs.team_id=t;
   begin perform public.import_library_songs(t,gen_random_uuid(),'Permission fixture',jsonb_build_array(base||'{"title":"Must roll back"}'::jsonb,base||'{"source_filename":"Media.proBundle"}'::jsonb)); raise exception 'Bundle accepted'; exception when others then if sqlerrm='Bundle accepted' then raise; end if; end;
   assert (select count(*) from public.songs where public.songs.team_id=t)=count_before, 'Mixed native batch atomic';

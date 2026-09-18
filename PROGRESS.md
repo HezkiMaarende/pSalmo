@@ -1,6 +1,6 @@
 # pSalmo Progress Tracker
 
-Last updated: 17 September 2026
+Last updated: 18 September 2026
 
 | Milestone | Status | Exit criteria |
 | --- | --- | --- |
@@ -12,6 +12,13 @@ Last updated: 17 September 2026
 | 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
 
 ## This iteration
+
+### Compact Song Bank and no permission-note requirement · 18 September
+
+- [x] User removes permission-basis input/requirement: local review/confirmation sends an empty note, without recording fabricated permission. Apply migration024 `optional_import_note`; optional older-client notes and historical notes/receipts remain intact. Blank/null notes import successfully with null provenance note; editor/church guards, attribution, atomicity, duplicate handling and immutable retry protections remain.
+- [x] Song Bank uses compact 64dp-minimum tappable title/metadata rows with detail chevrons instead of large Lihat Lagu buttons. An editor-only 48dp header + opens a themed Add/Import popup; choosing an action, Android Back or backdrop dismisses it. Text may grow for font scaling; both themes share layout.
+- [x] TypeScript, all76 tests and Android JS export pass (1022 modules,2.03MB). Mocked tests verify menu routes/dismissal/editor visibility in both themes, compact rows, note-free confirmation and frozen identical retry. Native/TXT Supabase rollback fixtures pass: note-free creation/retry, null metadata, overlong optional-note rejection, preserved existing notes and role/snapshot/kick guards. Updated the receipt-count expectation for the newly successful blank-note batch; no real songs created by fixtures.
+- [ ] Phone acceptance: Metro reload, menu/tappable rows, large fonts, both themes, review/confirm/cancel/Back and actual import. No APK rebuild required for the picker-enabled development client; standalone APK must be rebuilt to include changed JS. Metronome/Hermes/timing/IEM remain unchecked and deferred.
 
 ### Native ProPresenter extension · 17 September
 

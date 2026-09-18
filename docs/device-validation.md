@@ -14,7 +14,8 @@ Metronome/runtime/timing/IEM checks are **deferred at the user's request** while
 
 - [ ] Install the rebuilt APK; choose/cancel text files from Android file providers without broad storage access. Source files remain unchanged; importer cache cleanup works.
 - [ ] Trial5–10 actual church songs: verify title/artis/lirik, headings/repeated choruses, attribution/permission,4/4 defaults and explicit key/BPM/meter.
-- [ ] Skip duplicate/existing candidates; edit/skipped states, keyboard/font scaling, both themes, permission note and confirm/cancel/Back work.
+- [ ] Song Bank has compact tappable rows/chevrons and an editor-only header menu for Add/Import; menu selection, backdrop and Android Back dismiss correctly in both themes and large fonts. Ordinary members have no editor menu.
+- [ ] Skip duplicate/existing candidates; edit/skipped states, keyboard/font scaling, both themes and confirm/cancel/Back work. No permission-note field or requirement; attribution remains editable and import remains explicit.
 - [ ] Simulate response loss and retry the frozen UUID/payload; no duplicate creation. Abandoning an uncertain request warns correctly; revoked access prevents commit/replay.
 - [ ] Created-song links/results work. Service copies preserve defaults/lyrics/references, and canonical edits leave service snapshots unchanged.
 

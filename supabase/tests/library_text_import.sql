@@ -45,7 +45,8 @@ begin
   begin perform public.import_library_songs(t,batch,'Changed permission',entries); raise exception 'FAIL changed batch'; exception when sqlstate 'PT409' then null; end;
   begin perform public.import_library_songs(t,gen_random_uuid(),'Permission',jsonb_build_array(base||'{"title":"Should rollback"}',base||'{"title":"Invalid","bpm":19}')); raise exception 'FAIL invalid batch'; exception when raise_exception then if sqlerrm='FAIL invalid batch' then raise; end if; end;
   assert not exists(select 1 from public.songs where team_id=t and title='Should rollback'), 'invalid row rolls back whole batch';
-  begin perform public.import_library_songs(t,gen_random_uuid(),' ',jsonb_build_array(base)); raise exception 'FAIL permission'; exception when raise_exception then if sqlerrm='FAIL permission' then raise; end if; end;
+  retry:=public.import_library_songs(t,gen_random_uuid(),' ',jsonb_build_array(base));
+  assert jsonb_array_length(retry->'skipped')=1, 'Empty note is allowed; duplicate stays unchanged';
   begin perform public.import_library_songs(t,gen_random_uuid(),'Permission',jsonb_build_array(base||'{"source_filename":"../bad.txt"}')); raise exception 'FAIL filename'; exception when raise_exception then if sqlerrm='FAIL filename' then raise; end if; end;
   begin insert into public.songs(team_id,title,created_by) values(t,' NEW SONG ',auth.uid()); raise exception 'FAIL direct duplicate'; exception when sqlstate 'PT409' then null; end;
   -- Permanent editor needs no service duty to import, but cannot append to it.
@@ -64,7 +65,7 @@ begin
 end $$;
 reset role;
 do $$ declare ids jsonb:=current_setting('psalmo.import_fixture')::jsonb; begin
-  assert (select count(*) from private.library_import_receipts where team_id=(ids->>'team')::uuid)=1, 'failed batches create no receipt';
+  assert (select count(*) from private.library_import_receipts where team_id=(ids->>'team')::uuid)=2, 'Only original and successful empty-note batches create receipts; failed batches create none';
   assert not has_table_privilege('authenticated','private.library_import_receipts','SELECT'), 'private receipt inaccessible';
 end $$;
 select 'PASS: permission/church guards, duplicate normalization, create-only import, atomic validation, idempotent/altered retries, defaults/attribution/provenance, snapshot independence and kicked replay denial; fixtures rolled back' as result;

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Routes } from "../navigation/types";
 import { useChurch } from "../context/ChurchContext";
@@ -29,25 +30,110 @@ function useLibraryEditor() {
   );
 }
 export function LibraryScreen({ navigation }: Props<"Library">) {
+  const { colors } = useUi();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const state = useLoad(api.listSongs, []);
   const editor = useLibraryEditor();
   return (
     <Page>
-      <Title>Song Bank</Title>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Title>Song Bank</Title>
+        </View>
+        {editor && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tambah atau import lagu"
+            accessibilityState={{ expanded: menuOpen }}
+            onPress={() => setMenuOpen(true)}
+            style={{
+              minWidth: 48,
+              minHeight: 48,
+              borderRadius: 10,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{ color: colors.teal, fontSize: 26, fontWeight: "700" }}
+            >
+              ＋
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      <Modal
+        visible={menuOpen && editor}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Tutup menu lagu"
+            onPress={() => setMenuOpen(false)}
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "rgba(0,0,0,0.25)",
+            }}
+          />
+          <View
+            accessibilityViewIsModal
+            style={{
+              alignSelf: "flex-end",
+              margin: 20,
+              maxWidth: "90%",
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: 12,
+              padding: 6,
+            }}
+          >
+            {(
+              [
+                ["Tambah lagu baru", "SongEdit"],
+                ["Import dari ProPresenter", "LibraryImport"],
+              ] as const
+            ).map(([label, route]) => (
+              <Pressable
+                key={route}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                onPress={() => {
+                  setMenuOpen(false);
+                  navigation.navigate(route);
+                }}
+                style={{
+                  minHeight: 48,
+                  justifyContent: "center",
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                }}
+              >
+                <Text style={{ color: colors.ink, fontSize: 16 }}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </SafeAreaView>
+      </Modal>
       <Field label="Cari judul / artis" value={query} onChangeText={setQuery} />
-      {editor && (
-        <Button
-          title="Tambah lagu baru"
-          onPress={() => navigation.navigate("SongEdit")}
-        />
-      )}
-      {editor && (
-        <Button
-          title="Import dari ProPresenter"
-          onPress={() => navigation.navigate("LibraryImport")}
-        />
-      )}
       <Feedback loading={state.loading} error={state.error} />
       {state.data && !state.data.length && (
         <Body muted>Song Bank gereja masih kosong.</Body>
@@ -59,22 +145,48 @@ export function LibraryScreen({ navigation }: Props<"Library">) {
             .includes(query.toLowerCase()),
         )
         .map((song) => (
-          <Card key={song.id}>
-            <Title>{song.title}</Title>
-            <Body muted>
-              {[
-                song.artist,
-                song.default_key,
-                song.default_bpm && `${song.default_bpm} BPM`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </Body>
-            <Button
-              title="Lihat lagu"
-              onPress={() => navigation.navigate("Song", { id: song.id })}
-            />
-          </Card>
+          <Pressable
+            key={song.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Buka detail ${song.title}${song.artist ? `, ${song.artist}` : ""}`}
+            onPress={() => navigation.navigate("Song", { id: song.id })}
+            style={({ pressed }) => ({
+              minHeight: 64,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text
+                style={{ color: colors.ink, fontWeight: "600", fontSize: 16 }}
+              >
+                {song.title}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 13 }}>
+                {[
+                  song.artist,
+                  song.default_key,
+                  song.default_bpm && `${song.default_bpm} BPM`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+            </View>
+            <Text
+              accessible={false}
+              style={{ color: colors.teal, fontSize: 28 }}
+            >
+              ›
+            </Text>
+          </Pressable>
         ))}
     </Page>
   );

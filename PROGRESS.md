@@ -13,6 +13,15 @@ Last updated: 18 September 2026
 
 ## This iteration
 
+### Song Bank trial preparation and read-only evidence · 18 September
+
+- [x] Verify latest compact/import-note implementation [f33be11](https://github.com/HezkiMaarende/pSalmo/commit/f33be11209350218a2ddbac42b56434bb3001257): [CI35308580936](https://github.com/HezkiMaarende/pSalmo/actions/runs/35308580936) succeeds. Re-run TypeScript/all76 tests and native/TXT/weekly/reviewed-batch rollback fixtures successfully; no real content changes.
+- [x] Read-only church baseline: five existing native Song Bank imports and one draft service. Parse the corresponding five local originals in memory: stored lyric hashes match parser output exactly; source files unchanged;4/4/null key/BPM preserved, no artist/writer/copyright source metadata. No files/lyrics/hashes committed, and no real imports/edits performed by the agent. This is persistence/parser evidence, not manual lyric review or phone acceptance.
+- [x] Recheck AJAIB KAU TUHAN locally: four sections/21 lyric lines, source unchanged, no upload. It is not one of those existing five database imports. Add `docs/song-bank-trial.md` with preparation, individual phone gates, duplicate/retry instructions and25-file expansion rule; preserve no-permission-note requirement and existing service snapshot boundaries.
+- [x] Metro status endpoint on127.0.0.1:8082 returns HTTP200 `packager-status:running`. New launch declined because the existing server already owns that port; leave it unchanged instead of starting another server on8083. USB forwarding/device launch remain pending until a phone is connected.
+- [ ] User-selected set including AJAIB KAU TUHAN: four other choices and actual phone trial remain pending. ADB currently finds no connected device; installed picker/APK and controls cannot be verified. Device preview/confirmation/cancel/reopen/duplicates, Light/Dark/keyboard/font checks and real song-to-existing-draft copy remain unchecked. Do not expand to the full repertoire before review passes.
+- [ ] Metronome/Hermes/timing/IEM remain deferred and unchecked. No new schema/API/native dependency or audio changes in this preparation checkpoint.
+
 ### Compact Song Bank and no permission-note requirement · 18 September
 
 - [x] User removes permission-basis input/requirement: local review/confirmation sends an empty note, without recording fabricated permission. Apply migration024 `optional_import_note`; optional older-client notes and historical notes/receipts remain intact. Blank/null notes import successfully with null provenance note; editor/church guards, attribution, atomicity, duplicate handling and immutable retry protections remain.

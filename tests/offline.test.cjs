@@ -14,7 +14,7 @@ const {
   sanitizeOfflineDetail,
   sealOfflineSnapshot,
   shouldRefreshOffline,
-} = require("../.test-build/domain/offline.js");
+} = require("../.test-build/offline.js");
 
 function service(id, day = "2026-09-27") {
   return {

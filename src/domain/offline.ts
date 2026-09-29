@@ -6,11 +6,11 @@ import {
   utf8ToBytes,
 } from "@noble/ciphers/utils.js";
 import type {
-  Membership,
-  ScheduleWeek,
-  Service,
-  ServiceDetail,
-} from "../lib/church";
+  MembershipRole,
+  ServiceStatus,
+  ServiceType,
+  SongStructureSection,
+} from "./service";
 import { upcomingSunday } from "./calendar";
 
 export const OFFLINE_VERSION = 1 as const;
@@ -21,10 +21,77 @@ export const OFFLINE_PLAINTEXT_LIMIT = 2 * 1024 * 1024;
 export type DataSource = "network" | "cache";
 export type ConnectionState = "online" | "offline";
 
+export interface OfflineMembership {
+  role: MembershipRole;
+  song_editor: boolean;
+}
+export interface OfflineService {
+  id: string;
+  team_id: string;
+  title: string;
+  service_type: ServiceType;
+  service_date: string;
+  service_day: string;
+  status: ServiceStatus;
+}
+export interface OfflineRosterRow {
+  id: string;
+  role_name: string;
+  display_name: string | null;
+}
+export interface OfflineScheduleService {
+  id: string;
+  title: string;
+  service_type: ServiceType;
+  status: ServiceStatus;
+  assigned: boolean;
+  can_open: boolean;
+  can_edit: boolean;
+  roster: OfflineRosterRow[];
+}
+export interface OfflineScheduleWeek {
+  sunday: string;
+  published_at: string | null;
+  services: OfflineScheduleService[];
+}
+interface OfflineReference {
+  id?: string;
+  label: string;
+  url: string;
+  position?: number;
+}
+interface OfflineSetlistItem {
+  id: string;
+  position: number;
+  song_id: string | null;
+  proposed_title: string | null;
+  artist: string | null;
+  key: string | null;
+  bpm: number | null;
+  time_signature: string | null;
+  structure: SongStructureSection[];
+  lyrics_or_chords: string | null;
+  arrangement_url: string | null;
+  library_references: OfflineReference[];
+  notes: string | null;
+}
+export interface OfflineServiceDetail {
+  service: OfflineService;
+  revision: number;
+  items: OfflineSetlistItem[];
+  can_edit: boolean;
+  assignments: (OfflineRosterRow & {
+    person_id: string | null;
+    user_id: string | null;
+  })[];
+  notes: { id: string; body: string }[];
+  media: { id: string; label: string; url: string }[];
+}
+
 export interface OfflineIdentity {
   userId: string;
   teamId: string;
-  membership: Membership;
+  membership: OfflineMembership;
   name: string;
   verifiedAt: string;
 }
@@ -41,9 +108,9 @@ export interface OfflineSnapshotV1 extends OfflineIdentity {
   version: typeof OFFLINE_VERSION;
   syncedAt: string;
   sundays: string[];
-  weeks: ScheduleWeek[];
-  services: Service[];
-  details: Record<string, ServiceDetail>;
+  weeks: OfflineScheduleWeek[];
+  services: OfflineService[];
+  details: Record<string, OfflineServiceDetail>;
 }
 
 export function nextFourSundays(now = new Date()): string[] {
@@ -55,7 +122,9 @@ export function nextFourSundays(now = new Date()): string[] {
   });
 }
 
-export function sanitizeOfflineDetail(detail: ServiceDetail): ServiceDetail {
+export function sanitizeOfflineDetail(
+  detail: OfflineServiceDetail,
+): OfflineServiceDetail {
   return {
     ...detail,
     can_edit: false,
@@ -75,7 +144,9 @@ export function eligibleOfflineService<T extends { status: string }>(
   return service.status === "draft" || service.status === "approved";
 }
 
-export function sanitizeOfflineWeeks(weeks: ScheduleWeek[]): ScheduleWeek[] {
+export function sanitizeOfflineWeeks(
+  weeks: OfflineScheduleWeek[],
+): OfflineScheduleWeek[] {
   return weeks.map((week) => ({
     ...week,
     services: week.services.filter(eligibleOfflineService),
@@ -137,7 +208,7 @@ export function cachedSchedule(
   snapshot: OfflineSnapshotV1,
   from: string,
   to: string,
-): ScheduleWeek[] {
+): OfflineScheduleWeek[] {
   return snapshot.weeks.filter(
     (week) => week.sunday >= from && week.sunday <= to,
   );
@@ -147,7 +218,7 @@ export function cachedServices(
   snapshot: OfflineSnapshotV1,
   from: string,
   to: string,
-): Service[] {
+): OfflineService[] {
   return snapshot.services.filter(
     (service) => service.service_day >= from && service.service_day <= to,
   );

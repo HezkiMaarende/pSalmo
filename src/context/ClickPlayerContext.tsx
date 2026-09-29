@@ -81,6 +81,7 @@ export function ClickPlayerProvider({
       if (
         !userId ||
         !account.current.membership ||
+        account.current.connection === "offline" ||
         AppState.currentState !== "active"
       )
         return;

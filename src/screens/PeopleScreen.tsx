@@ -16,14 +16,16 @@ import {
 export function PeopleScreen() {
   const church = useChurch();
   const [name, setName] = useState("");
-  const admin = church.membership?.role !== "member";
-  const state = useLoad(
-    async () => ({
+  const admin =
+    church.membership?.role !== "member" && church.connection === "online";
+  const state = useLoad(async () => {
+    if (church.connection === "offline")
+      throw new Error("Kelola petugas memerlukan internet.");
+    return {
       people: await api.listPeople(),
       members: await api.listMembers(),
-    }),
-    [],
-  );
+    };
+  }, [church.connection]);
   const action = useAction(state.reload);
   return (
     <Page>

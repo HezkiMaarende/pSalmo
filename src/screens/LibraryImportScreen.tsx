@@ -30,9 +30,11 @@ import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 export function LibraryImportScreen({
   navigation,
 }: NativeStackScreenProps<Routes, "LibraryImport">) {
-  const { membership } = useChurch();
+  const { membership, connection } = useChurch();
   const authorized =
-    !!membership && (membership.role !== "member" || membership.song_editor);
+    connection !== "offline" &&
+    !!membership &&
+    (membership.role !== "member" || membership.song_editor);
   const [candidates, setCandidates] = useState<ImportCandidate[]>([]);
   const [identities, setIdentities] = useState<LibraryIdentity[]>([]);
   const [warning, setWarning] = useState("");

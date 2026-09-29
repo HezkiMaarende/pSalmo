@@ -27,18 +27,24 @@ import { songLabel } from "../domain/songLabel";
 import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
 import { SongTextReview } from "../components/SongTextReview";
+import { OfflineNotice } from "../components/OfflineNotice";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 export function ServiceScreen({ route, navigation }: Props<"Service">) {
   const { styles } = useUi();
   const { id } = route.params;
   const church = useChurch();
-  const admin = church.membership?.role !== "member";
+  const offline = church.connection === "offline";
+  const admin = church.membership?.role !== "member" && !offline;
   const [rosterOpen, setRosterOpen] = useState(false);
-  const state = useLoad(() => api.getServiceDetail(id), [id]);
+  const state = useLoad(
+    () => church.loadServiceDetail(id),
+    [id, church.loadServiceDetail],
+  );
   const action = useAction(state.reload);
   const d = state.data;
   return (
     <Page>
+      <OfflineNotice />
       <Feedback loading={state.loading} error={state.error || action.error} />
       {state.error && (
         <Button title="Coba muat ulang" onPress={() => void state.reload()} />
@@ -109,6 +115,7 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
                   itemId: item.id,
                 })
               }
+              offline={offline}
             />
           ))}
           <Card>
@@ -118,11 +125,19 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
               aransemen atau halaman Latihan. Audio klik memerlukan development
               build native; belum tervalidasi untuk pelayanan langsung.
             </Body>
-            <Button
-              title="Mulai latihan · Setlist / Practice"
-              disabled={!d.items.length}
-              onPress={() => navigation.navigate("Practice", { serviceId: id })}
-            />
+            {offline ? (
+              <Body muted>
+                Practice dan audio baru tidak tersedia saat offline.
+              </Body>
+            ) : (
+              <Button
+                title="Mulai latihan · Setlist / Practice"
+                disabled={!d.items.length}
+                onPress={() =>
+                  navigation.navigate("Practice", { serviceId: id })
+                }
+              />
+            )}
           </Card>
           <Card>
             <Title>Catatan ibadah</Title>
@@ -148,10 +163,14 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
             <Title>Referensi ibadah</Title>
             {d.media.map((m) => (
               <View key={m.id} style={{ gap: 8 }}>
-                <Button
-                  title={m.label}
-                  onPress={() => void action.run(() => openLink(m.url))}
-                />
+                {offline ? (
+                  <Body>{m.label}</Body>
+                ) : (
+                  <Button
+                    title={m.label}
+                    onPress={() => void action.run(() => openLink(m.url))}
+                  />
+                )}
                 {admin && (
                   <Button
                     title="Hapus referensi"
@@ -265,6 +284,7 @@ function SongRow({
   revision,
   reload,
   edit,
+  offline,
 }: {
   item: api.SetlistItem;
   index: number;
@@ -273,6 +293,7 @@ function SongRow({
   revision: number;
   reload: () => Promise<void>;
   edit: () => void;
+  offline: boolean;
 }) {
   const { styles } = useUi();
   const [expanded, setExpanded] = useState(false);
@@ -307,7 +328,10 @@ function SongRow({
         </Body>
       )}
       {!!item.notes && <Body>{item.notes}</Body>}
-      {item.arrangement_url &&
+      {offline && (item.arrangement_url || item.library_references?.length) ? (
+        <Body muted>Referensi video memerlukan internet.</Body>
+      ) : (
+        item.arrangement_url &&
         (youtubeId(item.arrangement_url) ? (
           <VideoReference
             label={
@@ -324,12 +348,14 @@ function SongRow({
               void action.run(() => openLink(item.arrangement_url!))
             }
           />
-        ))}
-      {item.library_references
-        ?.filter((r) => r.url !== item.arrangement_url)
-        .map((r, i) => (
-          <VideoReference key={`${r.url}-${i}`} label={r.label} url={r.url} />
-        ))}
+        ))
+      )}
+      {!offline &&
+        item.library_references
+          ?.filter((r) => r.url !== item.arrangement_url)
+          .map((r, i) => (
+            <VideoReference key={`${r.url}-${i}`} label={r.label} url={r.url} />
+          ))}
       <Feedback error={action.error} />
       {editable && (
         <View style={styles.row}>
@@ -439,14 +465,17 @@ function MediaEditor({
   );
 }
 export function ArrangementScreen({ route, navigation }: Props<"Arrangement">) {
+  const church = useChurch();
   const { serviceId, itemId } = route.params;
   const s = useLoad(() => api.getServiceDetail(serviceId), [serviceId, itemId]);
   const item = s.data?.items.find((i) => i.id === itemId);
   return (
     <Page>
       <Title>Edit aransemen</Title>
+      {church.connection === "offline" && <OfflineNotice />}
       <Feedback loading={s.loading} error={s.error} />
-      {s.data &&
+      {church.connection === "online" &&
+        s.data &&
         (!s.data.can_edit ? (
           <Body>Akses edit tidak tersedia.</Body>
         ) : item ? (
@@ -527,11 +556,27 @@ function ArrangementForm({
   );
 }
 export function AddSongsScreen({ route }: Props<"AddSongs">) {
+  const church = useChurch();
+  if (church.connection === "offline")
+    return (
+      <Page>
+        <OfflineNotice />
+        <Body>Tambah lagu memerlukan internet.</Body>
+      </Page>
+    );
   return <AddSongsContent serviceId={route.params.serviceId} />;
 }
 export function MetronomeAddSongsScreen({
   route,
 }: NativeStackScreenProps<RootRoutes, "MetronomeAddSongs">) {
+  const church = useChurch();
+  if (church.connection === "offline")
+    return (
+      <Page>
+        <OfflineNotice />
+        <Body>Tambah lagu memerlukan internet.</Body>
+      </Page>
+    );
   return <AddSongsContent serviceId={route.params.serviceId} metronome />;
 }
 function AddSongsContent({

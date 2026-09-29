@@ -24,16 +24,23 @@ import { defaultMeter } from "../domain/metronome";
 import { MonthControl } from "./WeeklyScreens";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 function useLibraryEditor() {
-  const { membership } = useChurch();
+  const { membership, connection } = useChurch();
   return (
-    !!membership && (membership.role !== "member" || membership.song_editor)
+    connection !== "offline" &&
+    !!membership &&
+    (membership.role !== "member" || membership.song_editor)
   );
 }
 export function LibraryScreen({ navigation }: Props<"Library">) {
+  const church = useChurch();
   const { colors } = useUi();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const state = useLoad(api.listSongs, []);
+  const state = useLoad(async () => {
+    if (church.connection === "offline")
+      throw new Error("Song Bank memerlukan internet.");
+    return api.listSongs();
+  }, [church.connection]);
   const editor = useLibraryEditor();
   return (
     <Page>
@@ -73,6 +80,14 @@ export function LibraryScreen({ navigation }: Props<"Library">) {
           </Pressable>
         )}
       </View>
+      {church.connection === "offline" && (
+        <Card>
+          <Body>
+            Song Bank tidak disalin ke perangkat. Hubungkan internet untuk
+            membukanya.
+          </Body>
+        </Card>
+      )}
       <Modal
         visible={menuOpen && editor}
         transparent
@@ -257,9 +272,14 @@ export function SongScreen({ route, navigation }: Props<"Song">) {
   );
 }
 export function SongEditScreen({ route, navigation }: Props<"SongEdit">) {
+  const church = useChurch();
   const id = route.params?.id;
   const editor = useLibraryEditor();
-  const state = useLoad(async () => (id ? api.getSong(id) : null), [id]);
+  const state = useLoad(async () => {
+    if (church.connection === "offline")
+      throw new Error("Edit Song Bank memerlukan internet.");
+    return id ? api.getSong(id) : null;
+  }, [id, church.connection]);
   return (
     <Page>
       <Title>{id ? "Edit lagu" : "Lagu baru"}</Title>
@@ -414,9 +434,12 @@ function SongForm({
   );
 }
 export function TargetsScreen({ route, navigation }: Props<"Targets">) {
+  const church = useChurch();
   const [month, setMonth] = useState(jakartaDay().slice(0, 7));
   const days = monthSundays(month);
   const state = useLoad(async () => {
+    if (church.connection === "offline")
+      throw new Error("Menambahkan lagu memerlukan internet.");
     const services = await api.visibleServices(days[0], days[days.length - 1]);
     const eligibility = await Promise.all(
       services.map(async (s) => ({
@@ -427,7 +450,7 @@ export function TargetsScreen({ route, navigation }: Props<"Targets">) {
     return eligibility
       .filter((entry) => entry.editable)
       .map((entry) => entry.service);
-  }, [month]);
+  }, [month, church.connection]);
   const a = useAction();
   return (
     <Page>

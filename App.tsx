@@ -17,7 +17,6 @@ import {
   Feedback,
   useAction,
 } from "./src/components/ui";
-import { supabase } from "./src/lib/supabase";
 import { NavigationChromeProvider } from "./src/context/NavigationChromeContext";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 function Root() {
@@ -50,8 +49,7 @@ function Root() {
             title="Keluar akun"
             onPress={() =>
               void action.run(async () => {
-                const r = await supabase.auth.signOut();
-                if (r.error) throw r.error;
+                await church.signOut();
               })
             }
           />

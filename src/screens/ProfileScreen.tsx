@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useChurch } from "../context/ChurchContext";
 import { saveProfileName, CHURCH_NAME } from "../lib/church";
-import { supabase } from "../lib/supabase";
 import { useTheme } from "../context/ThemeContext";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import {
   Page,
   Card,
@@ -20,6 +19,11 @@ export function ProfileScreen() {
   const [name, setName] = useState(church.name);
   const [message, setMessage] = useState("");
   const a = useAction();
+  const offlineAction = useAction();
+  const dateTime = (value: string | null) =>
+    value
+      ? new Date(value).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })
+      : "Belum tersedia";
   useEffect(() => setName(church.name), [church.name]);
   return (
     <Page>
@@ -67,7 +71,12 @@ export function ProfileScreen() {
         <Feedback error={theme.storageError} />
       </Card>
       <Card>
-        <Field label="Nama profil" value={name} onChangeText={setName} />
+        <Field
+          label="Nama profil"
+          value={name}
+          onChangeText={setName}
+          disabled={church.connection === "offline"}
+        />
         <Body muted>
           Nama ini memperbarui sapaan, bukan nama pada daftar petugas.
         </Body>
@@ -75,13 +84,57 @@ export function ProfileScreen() {
         <Body>{message}</Body>
         <Button
           title="Simpan nama"
-          disabled={a.busy}
+          disabled={a.busy || church.connection === "offline"}
           onPress={() =>
             void a.run(async () => {
               await saveProfileName(church.session!.user.id, name);
               await church.refresh();
               setMessage("Nama profil diperbarui.");
             })
+          }
+        />
+      </Card>
+      <Card>
+        <Title>Data Offline</Title>
+        <Body>
+          Status:{" "}
+          {church.connection === "offline" ? "Offline · hanya baca" : "Online"}
+        </Body>
+        <Body muted>Sinkron terakhir: {dateTime(church.lastSyncedAt)}</Body>
+        <Body muted>
+          Keanggotaan diverifikasi: {dateTime(church.lastVerifiedAt)}
+        </Body>
+        <Body muted>
+          Berlaku offline sampai: {dateTime(church.offlineExpiresAt)}
+        </Body>
+        <Body muted>
+          {church.cachedServiceCount} ibadah tersimpan · empat Minggu berikutnya
+        </Body>
+        <Feedback
+          loading={church.syncingOffline || offlineAction.busy}
+          error={offlineAction.error}
+        />
+        <Button
+          title="Perbarui data offline"
+          disabled={church.syncingOffline || offlineAction.busy}
+          onPress={() => void offlineAction.run(church.refreshOffline)}
+        />
+        <Button
+          title="Hapus data offline"
+          disabled={!church.lastSyncedAt || offlineAction.busy}
+          onPress={() =>
+            Alert.alert(
+              "Hapus data offline?",
+              "Jadwal dan detail ibadah yang tersimpan di perangkat akan dihapus.",
+              [
+                { text: "Batal", style: "cancel" },
+                {
+                  text: "Hapus",
+                  style: "destructive",
+                  onPress: () => void offlineAction.run(church.clearOffline),
+                },
+              ],
+            )
           }
         />
       </Card>
@@ -97,8 +150,7 @@ export function ProfileScreen() {
           disabled={a.busy}
           onPress={() =>
             void a.run(async () => {
-              const r = await supabase.auth.signOut();
-              if (r.error) throw r.error;
+              await church.signOut();
             })
           }
         />

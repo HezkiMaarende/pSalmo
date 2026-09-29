@@ -24,6 +24,7 @@ import {
   useLoad,
   useAction,
 } from "../components/ui";
+import { OfflineNotice } from "../components/OfflineNotice";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 export function Roster({ rows }: { rows: api.RosterRow[] }) {
   const { styles } = useUi();
@@ -50,14 +51,21 @@ export function HomeScreen({ navigation }: Props<"Home">) {
   const { colors } = useUi();
   const church = useChurch();
   const admin = church.membership?.role !== "member";
+  const writable = church.connection === "online";
   const [drawer, setDrawer] = useState(false);
   const day = upcomingSunday();
   const state = useLoad(
     async () => ({
-      weeks: await api.readSchedule(day, day),
-      services: await api.visibleServices(day, day),
+      weeks: await church.loadSchedule(day, day),
+      services: await church.loadServices(day, day),
     }),
-    [day, church.membership?.role, church.membership?.song_editor],
+    [
+      day,
+      church.membership?.role,
+      church.membership?.song_editor,
+      church.loadSchedule,
+      church.loadServices,
+    ],
   );
   const action = useAction(state.reload);
   const week = state.data?.weeks[0];
@@ -68,6 +76,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
   return (
     <Page>
       <Button title="☰ Menu" onPress={() => setDrawer(true)} />
+      <OfflineNotice />
       <Title>Hello, {church.name}</Title>
       <Body>{dateLabel(day)}</Body>
       <Feedback loading={state.loading} error={state.error || action.error} />
@@ -92,7 +101,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
                         }
                       />
                     </>
-                  ) : (
+                  ) : writable ? (
                     <Button
                       title="Buat ibadah"
                       disabled={action.busy}
@@ -107,7 +116,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
                         })
                       }
                     />
-                  )}
+                  ) : null}
                 </Card>
               );
             })
@@ -164,7 +173,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
                 navigation.navigate("Rules");
               }}
             />
-            {admin && (
+            {admin && writable && (
               <>
                 <Button
                   title="Kelola Petugas"
@@ -217,32 +226,41 @@ export function MonthControl({
   );
 }
 export function ScheduleScreen({ navigation }: Props<"Schedule">) {
+  const church = useChurch();
   const [month, setMonth] = useState(jakartaDay().slice(0, 7));
   const days = monthSundays(month);
   const state = useLoad(
-    () => api.readSchedule(days[0], days[days.length - 1]),
-    [month],
+    () => church.loadSchedule(days[0], days[days.length - 1]),
+    [month, church.loadSchedule],
   );
   return (
     <Page>
       <Title>Jadwal Pelayan</Title>
+      <OfflineNotice />
       <MonthControl month={month} setMonth={setMonth} />
       <Feedback loading={state.loading} error={state.error} />
-      {days.map((day) => (
-        <Card key={day}>
-          <Title>{weekLabel(day)}</Title>
-          <Body>{dateLabel(day)}</Body>
-          <Body muted>
-            {state.data?.find((w) => w.sunday === day)?.published_at
-              ? "Diumumkan"
-              : "Belum diumumkan"}
-          </Body>
-          <Button
-            title="Lihat jadwal"
-            onPress={() => navigation.navigate("Week", { day })}
-          />
-        </Card>
-      ))}
+      {days.map((day) => {
+        const week = state.data?.find((item) => item.sunday === day);
+        const unavailable = church.connection === "offline" && !week;
+        return (
+          <Card key={day}>
+            <Title>{weekLabel(day)}</Title>
+            <Body>{dateLabel(day)}</Body>
+            <Body muted>
+              {unavailable
+                ? "Tidak tersedia di data offline"
+                : week?.published_at
+                  ? "Diumumkan"
+                  : "Belum diumumkan"}
+            </Body>
+            <Button
+              title="Lihat jadwal"
+              disabled={unavailable}
+              onPress={() => navigation.navigate("Week", { day })}
+            />
+          </Card>
+        );
+      })}
     </Page>
   );
 }
@@ -250,12 +268,17 @@ export function WeekScreen({ route, navigation }: Props<"Week">) {
   const { day } = route.params;
   const church = useChurch();
   const admin = church.membership?.role !== "member";
-  const state = useLoad(() => api.readSchedule(day, day), [day]);
+  const writable = church.connection === "online";
+  const state = useLoad(
+    () => church.loadSchedule(day, day),
+    [day, church.loadSchedule],
+  );
   const action = useAction(state.reload);
   const week = state.data?.[0];
   return (
     <Page>
       <Title>{api.CHURCH_NAME}</Title>
+      <OfflineNotice />
       <Body>{dateLabel(day).toUpperCase()}</Body>
       <Title>{weekLabel(day)}</Title>
       <Feedback loading={state.loading} error={state.error || action.error} />
@@ -264,7 +287,7 @@ export function WeekScreen({ route, navigation }: Props<"Week">) {
           {!week?.published_at && (
             <Body>Jadwal minggu ini belum diumumkan.</Body>
           )}
-          {admin && (
+          {admin && writable && (
             <Button
               title={
                 week?.published_at
@@ -293,7 +316,7 @@ export function WeekScreen({ route, navigation }: Props<"Week">) {
                 {s && s.assigned && !s.can_open && (
                   <Body muted>Daftar lagu belum disetujui.</Body>
                 )}
-                {admin && !s && (
+                {admin && writable && !s && (
                   <Button
                     title={`Buat ${number === 3 ? "IR 3" : "IR 1 & 2"}`}
                     disabled={action.busy}
@@ -319,10 +342,13 @@ export function WeekScreen({ route, navigation }: Props<"Week">) {
 }
 export function ManageServicesScreen({ navigation }: Props<"ManageServices">) {
   const [month, setMonth] = useState(jakartaDay().slice(0, 7));
-  const admin = useChurch().membership?.role !== "member";
+  const church = useChurch();
+  const admin =
+    church.membership?.role !== "member" && church.connection === "online";
   return (
     <Page>
       <Title>Kelola Ibadah</Title>
+      <OfflineNotice />
       {admin ? (
         <>
           <MonthControl month={month} setMonth={setMonth} />

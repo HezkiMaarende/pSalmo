@@ -1,17 +1,28 @@
 # pSalmo Progress Tracker
 
-Last updated: 18 September 2026
+Last updated: 29 September 2026
 
-| Milestone | Status | Exit criteria |
-| --- | --- | --- |
-| 0. Project foundation | In progress | Typecheck, tests, Android JavaScript export, CI and native Android APK compilation pass; native launch/clicks user-confirmed; detailed runtime/Hermes and device acceptance remain |
-| 1. Data and access | Implemented; device gate open | Guarded exact-email roster linking, membership revocation, permanent song-editor capability, roster-only publication projection, and role/RLS SQL tests pass; native session/device exercise remains |
-| 2. Five-page weekly church workflow | Implemented; device gate open | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains |
-| 3. Song Bank and Smart Add | In progress | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain |
-| 4. Offline and click device | Native audio spike implemented; device gate open | Latihan Edit/Play and native PCM-loop driver implemented; native/Hermes, route-safe/background behavior, offline prefetch and 30-minute hardware validation remain |
-| 5. Pilot | Not started | One worship team uses it for real service preparation and issues are triaged |
+| Milestone                           | Status                                 | Exit criteria                                                                                                                                                                                           |
+| ----------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0. Project foundation               | In progress                            | Typecheck, tests, Android JavaScript export, CI and native Android APK compilation pass; native launch/clicks user-confirmed; detailed runtime/Hermes and device acceptance remain                      |
+| 1. Data and access                  | Implemented; device gate open          | Guarded exact-email roster linking, membership revocation, permanent song-editor capability, roster-only publication projection, and role/RLS SQL tests pass; native session/device exercise remains    |
+| 2. Five-page weekly church workflow | Implemented; device gate open          | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains           |
+| 3. Song Bank and Smart Add          | In progress                            | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain                                       |
+| 4. Offline and click device         | Offline implemented; device gates open | Encrypted four-Sunday read-only cache and Latihan native PCM-loop driver implemented; offline phone acceptance, native/Hermes, route-safe/background behavior, and 30-minute hardware validation remain |
+| 5. Pilot                            | Not started                            | One worship team uses it for real service preparation and issues are triaged                                                                                                                            |
 
 ## This iteration
+
+### Encrypted read-only offline ibadah · 29 September
+
+- [x] Add a versioned four-Sunday snapshot (Sunday counts as current), seven-day membership validity, and 15-minute refresh throttle. Successful membership verification—not a schedule request—controls expiry. Cache the current RLS-visible published roster plus accessible approved/member details and accessible admin/assigned WL/MD drafts; exclude archived/cancelled services.
+- [x] Encrypt one bounded snapshot with authenticated AES-GCM. Keep its independent 256-bit key in SecureStore and ciphertext in AsyncStorage; replace ciphertext atomically. Clear incomplete, corrupt, tampered, unsupported, expired, wrong-account/church and sign-out data. Strip assignment person/account links and exclude email/session tokens, Song Bank catalogue, import sources, and media downloads.
+- [x] Centralize network/denied/server errors and permit fallback only for recognized network failures. Permission denial never falls back. A restored connection must re-verify membership before enabling writes or extending cache validity; missing/revoked membership clears offline data.
+- [x] Home, Jadwal and Ibadah detail use cache-aware loaders with OFFLINE/read-only banners and header badges. Offline hides/disables create/edit/publish/roster/library/import/Practice/new playback/video/media actions. Song Bank explains that it is online-only. Existing native click playback is not stopped solely by network loss.
+- [x] Profil → Data Offline reports connection, last sync/verification, expiry and cached count, with refresh/clear controls. Profile editing is online-only. Sign-out is centralized and clears the snapshot before ending the Supabase session.
+- [x] TypeScript, all **83 tests**, and Android JavaScript export pass (1025 modules, 2.04 MB, no bytecode). Tests cover Sunday/four-week range, exact seven-day boundary, account/church binding, refresh throttle, AES-GCM round-trip/tamper/wrong-key rejection, identifier sanitization, cache range, lifecycle filtering, centralized loaders/sign-out and offline UI contracts. No schema/RPC/native dependency changed, so no Supabase migration, database fixture, or APK rebuild is required for this implementation.
+- [ ] Phone acceptance remains open: populate cache online, cold-start without network, inspect four Sundays and draft/approved access, verify every write/video/Practice/Song Bank gate, reconnect, clear/sign-out/account-switch/kick/expiry/corruption behavior, and both themes. See `docs/offline.md`. No device/Hermes success is claimed.
+- [ ] Metronome/Hermes/timing/IEM checks remain deferred and unchecked. Importer phone smoke is user-confirmed, but only one real song is currently recorded as persisted/reopened; five-song curation, duplicate retry, service-copy verification, and wider 25-file batches remain unchecked.
 
 ### Song Bank trial preparation and read-only evidence · 18 September
 
@@ -248,9 +259,11 @@ Implementation is ready for device acceptance, **not** declared pilot-ready. Ear
 - [x] Phase 4: Light-default ThemeProvider/useTheme, exact requested palettes, device-local AsyncStorage key independent of authentication, hydration before navigation and serialized preference writes. Profil → Tampilan switches immediately and reports storage errors without reverting session mode. Shared UI/login/admin/drawer/pickers/video container/editor/navigation/mini-player and Metronome consume theme tokens; native Appearance is manually overridden, Expo supports automatic appearance capabilities. Player and navigation are not keyed/remounted by mode. TypeScript, 42 tests (including provider hydration/failure/composition, write ordering and both transport palettes), and Android JS export passed (1003 modules, 1.98MB). Real Android persistence/font/dialog/lifecycle acceptance remains outstanding.
 
 CI checkpoints: Phase 1 [35189891812](https://github.com/HezkiMaarende/pSalmo/actions/runs/35189891812), Phase 2 [35190096327](https://github.com/HezkiMaarende/pSalmo/actions/runs/35190096327), Phase 3 [35190229855](https://github.com/HezkiMaarende/pSalmo/actions/runs/35190229855): all success. Phase 2 Supabase title guard applied and full rollback role/snapshot/default-meter fixtures passed. UI/source contracts do not constitute device-navigation/audio verification.
+
 - [ ] Phase 5: regression, CI/export, appearance APK rebuild and device acceptance. Native/Hermes, measured timing, route/IEM and five-minute background/lock acceptance remain outstanding until actually exercised.
 
 Phase 5 automated checkpoint:
+
 - [x] TypeScript and all44 tests pass. Both palettes meet4.5:1 normal-text/primary/transport contrast checks. Theme-provider tests exercise hydration, failed storage retaining session mode and child identity; actual navigation/audio retention on a phone remains an acceptance gate.
 - [x] Final Android JavaScript export passes:1.98MB, no bytecode (reported module count varies with Metro's incremental cache). Not a Hermes-runtime/native timing result.
 - [x] Full Supabase rollback fixtures pass after both migrations: default meters without BPM, explicit-meter preservation, prototype isolation, title/key atomic snapshot update, blank-title rejection, ordinary/off-duty/kicked write denial and existing roster/publication/reorder guards. Live scope check: active church0 empty meters/titles; sounday retains2 empty service meters. Remote migration names `default_church_meters` (20260917062249) and `service_title_validation` (20260917062923) are present.

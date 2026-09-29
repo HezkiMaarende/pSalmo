@@ -11,6 +11,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Routes, RootRoutes } from "./types";
 import { useNavigationChrome } from "../context/NavigationChromeContext";
 import { useTheme } from "../context/ThemeContext";
+import { useChurch } from "../context/ChurchContext";
 import {
   HomeScreen,
   ScheduleScreen,
@@ -46,6 +47,7 @@ function PageStack({
   initial: "Home" | "Schedule" | "Library" | "Announcements" | "Profile";
 }) {
   const { colors, mode } = useTheme();
+  const church = useChurch();
   return (
     <Stack.Navigator
       initialRouteName={initial}
@@ -57,6 +59,17 @@ function PageStack({
         statusBarStyle: "light",
         contentStyle: { backgroundColor: colors.background },
         headerBackTitle: "Kembali",
+        headerRight: () =>
+          church.connection === "offline" ? (
+            <Text
+              style={{
+                color: mode === "dark" ? colors.ink : colors.onAccent,
+                fontWeight: "700",
+              }}
+            >
+              OFFLINE
+            </Text>
+          ) : null,
       }}
     >
       <Stack.Screen
@@ -199,6 +212,7 @@ function MainTabs() {
 }
 export function AppNavigator() {
   const { colors, mode } = useTheme();
+  const church = useChurch();
   const baseTheme = mode === "dark" ? DarkTheme : DefaultTheme;
   const navigationTheme = {
     ...baseTheme,
@@ -236,6 +250,17 @@ export function AppNavigator() {
           headerTintColor: mode === "dark" ? colors.ink : colors.onAccent,
           statusBarStyle: "light",
           contentStyle: { backgroundColor: colors.background },
+          headerRight: () =>
+            church.connection === "offline" ? (
+              <Text
+                style={{
+                  color: mode === "dark" ? colors.ink : colors.onAccent,
+                  fontWeight: "700",
+                }}
+              >
+                OFFLINE
+              </Text>
+            ) : null,
         }}
       >
         <RootStack.Screen

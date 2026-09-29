@@ -108,14 +108,58 @@ export interface ServiceDetail {
   notes: { id: string; body: string }[];
   media: { id: string; label: string; url: string }[];
 }
+export type ChurchApiErrorKind = "network" | "denied" | "server";
+export class ChurchApiError extends Error {
+  constructor(
+    public readonly kind: ChurchApiErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ChurchApiError";
+  }
+}
+function errorKind(error: {
+  message?: string;
+  code?: string;
+  status?: number;
+}): ChurchApiErrorKind {
+  const text = `${error.message || ""} ${error.code || ""}`.toLowerCase();
+  if (
+    error.status === 401 ||
+    error.status === 403 ||
+    /permission|policy|row.level|rls|jwt|unauthor|forbidden|42501/.test(text)
+  )
+    return "denied";
+  if (
+    /network request failed|failed to fetch|fetch failed|timeout|timed out|econn|enotfound|offline/.test(
+      text,
+    )
+  )
+    return "network";
+  return "server";
+}
+export function asChurchApiError(error: unknown): ChurchApiError {
+  if (error instanceof ChurchApiError) return error;
+  const candidate =
+    error && typeof error === "object"
+      ? (error as { message?: string; code?: string; status?: number })
+      : { message: String(error) };
+  return new ChurchApiError(
+    errorKind(candidate),
+    candidate.message || "Terjadi kesalahan server.",
+  );
+}
+export function isNetworkError(error: unknown): boolean {
+  return asChurchApiError(error).kind === "network";
+}
 function unwrap<T>({
   data,
   error,
 }: {
   data: T;
-  error: { message: string } | null;
+  error: { message: string; code?: string; status?: number } | null;
 }): NonNullable<T> {
-  if (error) throw new Error(error.message);
+  if (error) throw asChurchApiError(error);
   if (data == null) throw new Error("Data tidak tersedia.");
   return data as NonNullable<T>;
 }
@@ -124,7 +168,7 @@ async function rpc(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   const result = await supabase.rpc(name, args);
-  if (result.error) throw new Error(result.error.message);
+  if (result.error) throw asChurchApiError(result.error);
   return result.data;
 }
 export async function getMembership(
@@ -137,7 +181,7 @@ export async function getMembership(
     .eq("team_id", churchId)
     .eq("user_id", userId)
     .maybeSingle();
-  if (r.error) throw new Error(r.error.message);
+  if (r.error) throw asChurchApiError(r.error);
   return r.data as Membership | null;
 }
 export async function getProfileName(userId: string): Promise<string> {

@@ -42,6 +42,12 @@ count, and provides explicit refresh and clear actions.
 
 ## Device acceptance (still required)
 
+The 3 October 2026 pilot baseline reruns all 83 automated tests, including
+encryption round-trip, tamper/wrong-key rejection and the exact seven-day
+boundary. The Android JavaScript export and Supabase rollback suites also pass.
+These remain automated evidence only; use the private non-live matrix in
+[pilot-readiness.md](pilot-readiness.md) for actual phone results.
+
 1. While online, open Profil → Data Offline and tap **Perbarui data offline**.
 2. Confirm the service count and timestamps, then disable Wi-Fi/mobile data.
 3. Cold-open the app and inspect Home, the relevant four-Sunday schedule, an

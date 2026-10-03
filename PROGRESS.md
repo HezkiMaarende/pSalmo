@@ -1,6 +1,6 @@
 # pSalmo Progress Tracker
 
-Last updated: 29 September 2026
+Last updated: 3 October 2026
 
 | Milestone                           | Status                                 | Exit criteria                                                                                                                                                                                           |
 | ----------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -9,9 +9,21 @@ Last updated: 29 September 2026
 | 2. Five-page weekly church workflow | Implemented; device gate open          | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains           |
 | 3. Song Bank and Smart Add          | In progress                            | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain                                       |
 | 4. Offline and click device         | Offline implemented; device gates open | Encrypted four-Sunday read-only cache and Latihan native PCM-loop driver implemented; offline phone acceptance, native/Hermes, route-safe/background behavior, and 30-minute hardware validation remain |
-| 5. Pilot                            | Not started                            | One worship team uses it for real service preparation and issues are triaged                                                                                                                            |
+| 5. Pilot                            | Preparation in progress                | Private non-live three-role acceptance passes before one worship team uses it for real service preparation; live audio remains separately gated                                                         |
 
 ## This iteration
+
+### Private non-live pilot readiness baseline · 3 October
+
+- [x] Confirm local `main` and recorded `origin/main` both point to `078f7e4`. GitHub [App checks run 36520186787](https://github.com/HezkiMaarende/pSalmo/actions/runs/36520186787) succeeds for that exact commit. Clean locked install, TypeScript, all **83 tests**, and Android JavaScript export pass locally (1,025 modules, 2.04 MB, no bytecode).
+- [x] Restore the existing pSalmo Supabase project from inactivity; it returns `ACTIVE_HEALTHY`. Re-run weekly workflow, reviewed-song batch, TXT importer and native ProPresenter rollback suites successfully. Synthetic accounts/churches/content roll back. Security Advisor findings remain the documented guarded authenticated RPCs/private receipt table plus leaked-password protection disabled; no schema, policy or Auth setting changed.
+- [x] Refresh the production-dependency audit: 0 critical, 4 moderate and 56 high dependency-node reports under Expo/Metro/Jest/Xcode build tooling, rooted in `image-size`, PostCSS, `braces`, `node-forge` and `uuid`. No compatible lockfile-only fix is available; no forced SDK upgrade is applied. Treat untrusted build inputs as out of scope for this private pilot and revisit before public distribution.
+- [x] Confirm the authorized local ProPresenter folder is available with 725 files including AJAIB KAU TUHAN. Do not record source hashes/lyrics or commit original files. Add `docs/pilot-readiness.md` with the three-role, five-song, offline and private-APK matrix; correct stale sharing/device documentation now that offline is implemented.
+- [x] Read-only live pilot baseline after restore: configured GPdI Elshaddai workspace has one owner membership, no admin/member/editor memberships, no roster people, five Song Bank entries, one draft service, one approved service and no published week. No account, roster, schedule, service or song was changed. Three-role acceptance cannot start until two real users register and the owner links/assigns them through the app; do not invent emails or publish synthetic schedules.
+- [ ] Five-song manual acceptance remains: AJAIB plus four existing native imports, source comparison, cancel/discard, duplicate retry, reopen and one real copy into a legitimate unpublished future service. The user's prior successful import is recorded as a smoke result, not completion.
+- [ ] Three-account real-phone acceptance remains: owner/PIC, ordinary member and permanent Song Bank editor with actual WL/MD duty. ADB currently has no connected device, so navigation, role boundaries, Light/Dark, offline cold start/reconnect/clear/sign-out/account-switch/kick and standalone launch cannot be claimed.
+- [ ] A new standalone universal preview must finish native compilation and verifier checks before sharing. The first 3 October attempt correctly rejected a reused Gradle cache with missing `metadata.bin`. A second attempt used fresh cache `psalmo-gradle-pilot-20261003`, completed locked staging/prebuild and downloaded verified audio libraries, then left two CMake/Ninja compiler-ABI checks idle for more than six minutes with no output/CPU progress. Stop only that verified attempt's process tree. No new APK/output was created; the ignored 17 September artifact remains unchanged and is not pilot evidence. Retry `npm run build:share -- -GradleCache "$env:LOCALAPPDATA\Temp\psalmo-gradle-pilot-20261003"` from the user's normal PowerShell, which previously completed native compilation. Record the new size/SHA256 and launch with Metro stopped/USB disconnected first.
+- [ ] Metronome/Hermes/timing/background/route/IEM checks remain visible, deferred and unchecked. This pilot is non-live and must not use the click with a church mixer/IEM chain.
 
 ### Encrypted read-only offline ibadah · 29 September
 

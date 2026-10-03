@@ -74,4 +74,4 @@ The original five-phase automated checkpoint passed44 tests; the subsequent ProP
 
 ## Deferred, not acceptance claims
 
-The Latihan Edit/Play baseline and app-wide background-click implementation are now implemented; use [latihan-audio.md](latihan-audio.md) for their still-open rebuilt-device gates. Offline prefetch, Smart Add extraction, CSV import, medley groups, native route-safe audio, Recents/process survival, mixer/IEM reliability and a real church pilot remain deferred.
+The Latihan Edit/Play baseline, app-wide background-click implementation and encrypted read-only offline snapshot are implemented. Use [offline.md](offline.md) and [pilot-readiness.md](pilot-readiness.md) for their still-open phone gates, and [latihan-audio.md](latihan-audio.md) for deferred audio gates. Smart Add extraction, CSV import, medley groups, native route-safe audio, Recents/process survival, mixer/IEM reliability and a real church pilot remain deferred.

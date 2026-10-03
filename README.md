@@ -54,6 +54,11 @@ Editable services also support local WhatsApp song-list preview/review and an at
 
 Run `npm run build:share` to create a standalone, multi-architecture preview at `artifacts/psalmo-preview-universal.apk`. Unlike the development APK, it embeds the app and does not need Metro. Send it through WhatsApp as a Document after testing with Metro disconnected. It uses a template test signing key, not production signing. See [docs/share-apk.md](docs/share-apk.md) for setup, account access and safety notes.
 
+The current private pilot is deliberately non-live: scheduling, role access,
+Song Bank and encrypted read-only offline use only. Follow
+[docs/pilot-readiness.md](docs/pilot-readiness.md); metronome/Hermes/timing,
+background, route-disconnect and mixer/IEM gates remain separate.
+
 ## Validate
 
 ```sh

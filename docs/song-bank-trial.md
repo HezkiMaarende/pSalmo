@@ -1,5 +1,17 @@
 # Five-song Song Bank acceptance trial
 
+## Pilot checkpoint · 3 October 2026
+
+- The user previously confirmed that a real phone import worked. This is a
+  useful smoke result, but it does not by itself close the five-song content,
+  duplicate-retry or song-to-draft-copy gates below.
+- The authorized local library is available and still contains AJAIB KAU TUHAN
+  plus the existing source collection. ADB currently reports no connected
+  device, so no additional visual or phone result is claimed here.
+- The latest locked install, TypeScript, all 83 tests, Android JavaScript export
+  and all four rollback SQL suites pass. Original song files, lyrics and hashes
+  remain outside the repository and tracker.
+
 ## Evidence checkpoint · 18 September 2026
 
 - Implementation commit `f33be11209350218a2ddbac42b56434bb3001257` passed [CI run35308580936](https://github.com/HezkiMaarende/pSalmo/actions/runs/35308580936). TypeScript and all76 local tests pass again.

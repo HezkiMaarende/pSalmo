@@ -21,7 +21,7 @@ test("Navigation chrome and draft guards are separate from the long-lived player
   const practice = read("src/screens/PracticeScreen.tsx");
   assert.match(
     practice,
-    /usePreventRemove\(editorState.dirty \|\| editorState.busy/,
+    /usePreventRemove\(\s*editorState.dirty \|\| editorState.busy \|\| medleyDirty/,
   );
   assert.match(practice, /navigation.dispatch\(data.action\)/);
   assert.match(

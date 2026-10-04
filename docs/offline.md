@@ -17,8 +17,9 @@ that could reveal account linking are replaced with `null` before encryption.
 
 - A dedicated random 256-bit key is stored in Android Keystore/iOS Keychain via
   SecureStore. It is not the Supabase session-storage key.
-- Authenticated AES-GCM ciphertext is stored in AsyncStorage. Snapshot V2 adds
-  announcements; legacy V1 key/data pairs are cleared and refreshed online.
+- Authenticated AES-GCM ciphertext is stored in AsyncStorage. Snapshot V3 adds
+  medley groups to service details; V2 added announcements. Legacy V1/V2
+  key/data pairs are cleared and refreshed online.
   Tampering, a lost
   key, an invalid schema/version, or an incomplete key/data pair clears the
   snapshot instead of returning partial data.
@@ -46,7 +47,7 @@ and announcement counts, and provides explicit refresh and clear actions.
 
 ## Device acceptance (still required)
 
-The 4 October 2026 Pengumuman checkpoint passes all 89 automated tests, including
+The 4 October 2026 Medley checkpoint passes all 92 automated tests, including
 encryption round-trip, tamper/wrong-key rejection and the exact seven-day
 boundary. The Android JavaScript export and Supabase rollback suites also pass.
 These remain automated evidence only; use the private non-live matrix in
@@ -56,7 +57,8 @@ These remain automated evidence only; use the private non-live matrix in
 2. Confirm the service count and timestamps, then disable Wi-Fi/mobile data.
 3. Cold-open the app and inspect Home, Pengumuman/detail, the relevant
    four-Sunday schedule, an accessible approved service, and an accessible
-   editor draft. Expired announcements must disappear even from an older cache.
+   editor draft, including medley labels and member order. Expired announcements
+   must disappear even from an older cache. An old V2 snapshot must be cleared.
 4. Confirm the OFFLINE badge and read-only notices; verify no edit, create,
    publish, import, video, Practice, or Song Bank action remains usable.
 5. Re-enable connectivity and verify membership before writes return.

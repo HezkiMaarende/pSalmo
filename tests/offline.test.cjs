@@ -31,7 +31,7 @@ function service(id, day = "2026-09-27") {
 
 function snapshot(overrides = {}) {
   return {
-    version: 2,
+    version: 3,
     userId: "user-a",
     teamId: "church",
     membership: { role: "member", song_editor: false },
@@ -105,12 +105,14 @@ test("encrypted snapshot round-trips and rejects tampering or the wrong key", ()
   const last = payload.endsWith("0") ? "1" : "0";
   assert.throws(() => openOfflineSnapshot(payload.slice(0, -1) + last, key));
   assert.throws(() => openOfflineSnapshot(payload, "22".repeat(32)));
-  const legacy = sealOfflineSnapshot(
-    { ...value, version: 1 },
-    key,
-    new Uint8Array(12).fill(8),
-  );
-  assert.throws(() => openOfflineSnapshot(legacy, key));
+  for (const version of [1, 2]) {
+    const legacy = sealOfflineSnapshot(
+      { ...value, version },
+      key,
+      new Uint8Array(12).fill(8),
+    );
+    assert.throws(() => openOfflineSnapshot(legacy, key));
+  }
 });
 
 test("offline detail is read-only and contains no account-link identifiers", () => {
@@ -118,6 +120,7 @@ test("offline detail is read-only and contains no account-link identifiers", () 
     service: service("one"),
     revision: 4,
     items: [],
+    medley_groups: [],
     can_edit: true,
     assignments: [
       {
@@ -218,6 +221,7 @@ test("offline UI uses centralized loaders and centralized sign-out", () => {
   assert.match(app, /church\.signOut/);
   assert.doesNotMatch(profile, /supabase\.auth\.signOut/);
   assert.doesNotMatch(app, /supabase\.auth\.signOut/);
-  assert.match(storage, /psalmo\.offline\.v2\.data/);
-  assert.match(storage, /LEGACY_DATA_NAME = "psalmo\.offline\.v1\.data"/);
+  assert.match(storage, /DATA_NAME = "psalmo\.offline\.v3\.data"/);
+  assert.match(storage, /"psalmo\.offline\.v1\.data"/);
+  assert.match(storage, /"psalmo\.offline\.v2\.data"/);
 });

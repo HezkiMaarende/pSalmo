@@ -7,11 +7,20 @@ Last updated: 4 October 2026
 | 0. Project foundation               | In progress                            | Typecheck, tests, Android JavaScript export, CI and native Android APK compilation pass; native launch/clicks user-confirmed; detailed runtime/Hermes and device acceptance remain                      |
 | 1. Data and access                  | Implemented; device gate open          | Guarded exact-email roster linking, membership revocation, permanent song-editor capability, roster-only publication projection, and role/RLS SQL tests pass; native session/device exercise remains    |
 | 2. Five-page weekly church workflow | Implemented; device gate open          | Five tabs, drawer, Home/Jadwal, shared IR1/2, independent IR3, PIC roster/publication, service details/arrangements, and HTTP409 revision-safe reorder implemented; real Android flow remains           |
-| 3. Song Bank and Smart Add          | In progress                            | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, and profile editing implemented; Smart Add and medleys remain                                       |
+| 3. Song Bank and Smart Add          | In progress                            | Search, canonical lyrics/defaults, ordered video references, service snapshots, editor permissions, profile editing and Medley V1 implemented; provider-backed Smart Add remains                    |
 | 4. Offline and click device         | Offline implemented; device gates open | Encrypted four-Sunday read-only cache and Latihan native PCM-loop driver implemented; offline phone acceptance, native/Hermes, route-safe/background behavior, and 30-minute hardware validation remain |
 | 5. Pilot                            | Preparation in progress                | Private non-live three-role acceptance passes before one worship team uses it for real service preparation; live audio remains separately gated                                                         |
 
 ## This iteration
+
+### Medley V1 · 4 October
+
+- [x] Add contiguous 2+-song medleys with optional labels (80-character limit) to shared IR1/2 or independent IR3 setlists. Service detail and Metronome Setlist can create, resize, relabel and dissolve groups. Move whole groups as units; reorder grouped songs internally; an ungrouped song moves past a whole group. Practice remains song-by-song with read-only medley context and no playback/algorithm change.
+- [x] Apply migrations `202610040027_medley_workflow.sql` and `202610040028_medley_execution_boundary.sql`. RPCs use the existing membership/assignment authorization, advisory lock and expected setlist revision (HTTP409 stale conflict). Deferred constraints reject one-song, cross-setlist and noncontiguous groups, including invalid direct API writes. Delete RPC dissolves groups that would have fewer than two songs. The first rollback fixture exposed private-helper EXECUTE denial; migration 028 corrected the SECURITY DEFINER boundary, and the rerun passed. Fixture writes rolled back; live church still has zero groups/grouped items.
+- [x] Upgrade encrypted offline service details to snapshot V3 with group labels/memberships, clearing V1/V2 key and ciphertext pairs instead of partially migrating them. Offline remains read-only; no songs, announcement visibility or audio state changed.
+- [x] TypeScript, **92 tests**, Android JavaScript export (1,029 modules, 2.06 MB, no bytecode), Medley rollback fixture and `git diff --check` pass. Security Advisor has no new error finding; its new authenticated SECURITY DEFINER notices are intentional guarded RPCs ([notice](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)). The private receipt and pre-existing performance/Auth advisories remain.
+- [ ] Real-device checks remain: create/edit/resize/dissolve and reorder in both entry points/themes, large fonts and keyboard, dirty Back/conflict refresh, offline V2 cleanup and V3 cold start, linked editor/member visibility, group deletion and Practice song navigation. No APK/native/Hermes success claimed for this change.
+- [ ] Concurrent two-device reorder race, metronome timing/background/route/IEM, pilot roles/five-song review and standalone APK gates remain unchecked.
 
 ### Pengumuman V1 · 4 October
 

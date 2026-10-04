@@ -19,7 +19,7 @@ import {
   ConnectionState,
   nextFourSundays,
   OFFLINE_VERSION,
-  OfflineSnapshotV2,
+  OfflineSnapshotV3,
   offlineExpiry,
   sanitizeOfflineDetail,
   sanitizeOfflineWeeks,
@@ -65,16 +65,16 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [connection, setConnection] = useState<ConnectionState>("online");
-  const [snapshot, setSnapshot] = useState<OfflineSnapshotV2 | null>(null);
+  const [snapshot, setSnapshot] = useState<OfflineSnapshotV3 | null>(null);
   const [syncingOffline, setSyncingOffline] = useState(false);
   const version = useRef(0);
   const sessionRef = useRef<Session | null>(null);
-  const snapshotRef = useRef<OfflineSnapshotV2 | null>(null);
+  const snapshotRef = useRef<OfflineSnapshotV3 | null>(null);
   const identityRef = useRef<Identity | null>(null);
   const onlineVerifiedRef = useRef(false);
   const syncPromise = useRef<Promise<void> | null>(null);
 
-  const rememberSnapshot = useCallback((value: OfflineSnapshotV2 | null) => {
+  const rememberSnapshot = useCallback((value: OfflineSnapshotV3 | null) => {
     snapshotRef.current = value;
     setSnapshot(value);
   }, []);
@@ -106,7 +106,7 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
           ),
         ),
       );
-      const value: OfflineSnapshotV2 = {
+      const value: OfflineSnapshotV3 = {
         version: OFFLINE_VERSION,
         userId: identity.session.user.id,
         teamId: api.churchId,
@@ -293,7 +293,7 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
   const fallback = useCallback(
     async <T,>(
       network: () => Promise<T>,
-      cached: (value: OfflineSnapshotV2) => T,
+      cached: (value: OfflineSnapshotV3) => T,
     ) => {
       try {
         const value = await network();

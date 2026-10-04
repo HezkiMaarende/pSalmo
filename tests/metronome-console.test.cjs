@@ -55,6 +55,7 @@ function harness(overrides = {}) {
           songLabel: (title, key) =>
             key?.trim() ? `${title} - ${key.trim()}` : title || "Lagu",
         };
+      if (name === "../domain/medley") return require("../.test-build/medley");
       throw new Error(name);
     },
   });
@@ -69,6 +70,7 @@ function harness(overrides = {}) {
     detail: {
       service: { title: "Ibadah Raya 1 & 2" },
       items: songs,
+      medley_groups: [],
       can_edit: true,
     },
     item: songs[0],
@@ -123,6 +125,30 @@ test("Setlist/Practice switch uses the parent guard and renders actual meter pul
   assert.equal(h.find("1. Song 1, 120 BPM, 6/8"), undefined);
   assert.ok(h.find("Kembali ke daftar lagu"));
   assert.deepEqual(h.calls, ["view:practice"]);
+});
+
+test("medley displays as one Setlist unit but Practice remains song-by-song", () => {
+  const h = harness();
+  h.props.detail.medley_groups = [
+    { id: "g", setlist_id: "s", position: 0, label: "Pembukaan" },
+  ];
+  h.props.detail.items[0].medley_group_id = "g";
+  h.props.detail.items[1].medley_group_id = "g";
+  h.props.onMedleyEdit = (id) => h.calls.push(`medley:${id}`);
+  h.props.onMoveGroup = (id, direction) =>
+    h.calls.push(`group:${id}:${direction}`);
+  h.props.onMoveSong = (id, direction) =>
+    h.calls.push(`song:${id}:${direction}`);
+  assert.ok(h.find("Edit Pembukaan"));
+  assert.equal(h.find("Naikkan Pembukaan").props.disabled, true);
+  h.find("Turunkan Pembukaan").props.onPress();
+  h.find("Turunkan Song 1").props.onPress();
+  assert.deepEqual(h.calls, ["group:g:down", "song:1:down"]);
+  h.props.view = "practice";
+  assert.equal(h.find("Edit Pembukaan"), undefined);
+  assert.equal(h.find("Lagu sebelumnya").props.disabled, true);
+  h.find("Lagu berikutnya").props.onPress();
+  assert.equal(h.calls.at(-1), "select:2");
 });
 
 test("Transport is outside the scrolling content; boundaries disable skips", () => {

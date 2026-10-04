@@ -33,6 +33,13 @@ Metronome/runtime/timing/IEM checks are **deferred at the user's request** while
 - [ ] Optional HTTPS link opens only after a user tap while online and shows the offline warning without launching another app when offline. Invalid/non-HTTPS links and invalid/past expiry are rejected.
 - [ ] After refreshing offline data, cold-start without network: active announcement content remains readable, drafts/archives remain absent, expiry is rechecked against the current Jakarta day, and legacy V1 cache is cleared/refreshed instead of partially reused.
 
+## Medley V1
+
+- [ ] In an authorized draft IR1/2 and separately in IR3, create a two-song medley, add/remove an edge song, rename and dissolve it from service detail and Metronome Setlist. No change leaks between IR1/2 and IR3.
+- [ ] Move the medley past an ordinary song as a unit; move an internal song without leaving its group; delete members until one remains and confirm the group dissolves while the song remains. Refresh/reopen after every edit.
+- [ ] In Practice, Previous/Next still select individual songs, show their medley position and never auto-start clicks. Group operations do not change BPM, click timing or audio lifecycle.
+- [ ] Exercise ordinary-member read-only view, off-duty editor denial, linked WL/MD edit access, two-device stale-revision conflict, dirty Back, both themes, large fonts and keyboard. Cold-start offline with V3 group labels/order read-only; old V2 data must clear and refresh online.
+
 ## Prepare the metronome pass later
 
 Background-click revision (17 September): rebuild/install the development APK before testing. Start one song, switch tabs/back, open another app and lock for five minutes; clicks should continue. Stop from the global bar and media notification/lock screen; no automatic restart. Test notification-permission denial, rapid Start/Stop/replacement, access revocation on foreground return, sign-out and competing audio. Native device verification is outstanding; swipe-away/force-stop survival is unsupported.
@@ -81,4 +88,4 @@ The original five-phase automated checkpoint passed44 tests; the subsequent ProP
 
 ## Deferred, not acceptance claims
 
-The Latihan Edit/Play baseline, app-wide background-click implementation and encrypted read-only offline snapshot are implemented. Use [offline.md](offline.md) and [pilot-readiness.md](pilot-readiness.md) for their still-open phone gates, and [latihan-audio.md](latihan-audio.md) for deferred audio gates. Smart Add extraction, CSV import, medley groups, native route-safe audio, Recents/process survival, mixer/IEM reliability and a real church pilot remain deferred.
+The Latihan Edit/Play baseline, app-wide background-click implementation, Medley V1 and encrypted read-only offline snapshot are implemented. Use [offline.md](offline.md) and [pilot-readiness.md](pilot-readiness.md) for their still-open phone gates, and [latihan-audio.md](latihan-audio.md) for deferred audio gates. Smart Add extraction, CSV import, native route-safe audio, Recents/process survival, mixer/IEM reliability and a real church pilot remain deferred.

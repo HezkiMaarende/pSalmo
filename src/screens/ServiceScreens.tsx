@@ -28,6 +28,8 @@ import { Roster } from "./WeeklyScreens";
 import { youtubeId } from "../domain/youtube";
 import { SongTextReview } from "../components/SongTextReview";
 import { OfflineNotice } from "../components/OfflineNotice";
+import { buildSetlistUnits, medleyLabel } from "../domain/medley";
+import { MedleyEditor } from "../components/MedleyEditor";
 type Props<K extends keyof Routes> = NativeStackScreenProps<Routes, K>;
 export function ServiceScreen({ route, navigation }: Props<"Service">) {
   const { styles } = useUi();
@@ -36,6 +38,23 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
   const offline = church.connection === "offline";
   const admin = church.membership?.role !== "member" && !offline;
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [medleyEditing, setMedleyEditing] = useState<string | null | undefined>(
+    undefined,
+  );
+  const [medleyDirty, setMedleyDirty] = useState(false);
+  usePreventRemove(medleyDirty, ({ data }) => {
+    Alert.alert("Perubahan medley belum disimpan", "Kembali tanpa menyimpan?", [
+      { text: "Tetap di sini", style: "cancel" },
+      {
+        text: "Abaikan",
+        style: "destructive",
+        onPress: () => {
+          setMedleyDirty(false);
+          navigation.dispatch(data.action);
+        },
+      },
+    ]);
+  });
   const state = useLoad(
     () => church.loadServiceDetail(id),
     [id, church.loadServiceDetail],
@@ -95,29 +114,105 @@ export function ServiceScreen({ route, navigation }: Props<"Service">) {
           <Title>Daftar lagu</Title>
           {d.can_edit && (
             <Button
+              title="Buat medley"
+              disabled={d.items.length < 2}
+              onPress={() => setMedleyEditing(null)}
+            />
+          )}
+          {d.can_edit && (
+            <Button
               title="Tambah lagu · manual / teks WhatsApp / Song Bank"
               onPress={() => navigation.navigate("AddSongs", { serviceId: id })}
             />
           )}
           {!d.items.length && <Body muted>Belum ada lagu.</Body>}
-          {d.items.map((item, index) => (
-            <SongRow
-              key={item.id}
-              item={item}
-              index={index}
-              count={d.items.length}
-              editable={d.can_edit}
-              revision={d.revision}
-              reload={state.reload}
-              edit={() =>
-                navigation.navigate("Arrangement", {
-                  serviceId: id,
-                  itemId: item.id,
-                })
-              }
-              offline={offline}
+          {buildSetlistUnits(d.items, d.medley_groups).map(
+            (unit, unitIndex, units) => (
+              <View key={unit.key} style={{ gap: 8 }}>
+                {unit.kind === "medley" && (
+                  <Card>
+                    <Title>
+                      {medleyLabel(unit.group)} · {unit.items.length} lagu
+                    </Title>
+                    {d.can_edit && (
+                      <View style={styles.row}>
+                        <Button
+                          title="Edit medley"
+                          onPress={() => setMedleyEditing(unit.group.id)}
+                        />
+                        <Button
+                          title="↑ Medley"
+                          disabled={action.busy || unitIndex === 0}
+                          onPress={() =>
+                            void action.run(() =>
+                              api.moveMedleyGroup(
+                                id,
+                                d.revision,
+                                unit.group.id,
+                                "up",
+                              ),
+                            )
+                          }
+                        />
+                        <Button
+                          title="↓ Medley"
+                          disabled={
+                            action.busy || unitIndex === units.length - 1
+                          }
+                          onPress={() =>
+                            void action.run(() =>
+                              api.moveMedleyGroup(
+                                id,
+                                d.revision,
+                                unit.group.id,
+                                "down",
+                              ),
+                            )
+                          }
+                        />
+                      </View>
+                    )}
+                  </Card>
+                )}
+                {unit.items.map((item, withinIndex) => (
+                  <SongRow
+                    key={item.id}
+                    item={item}
+                    index={d.items.findIndex((entry) => entry.id === item.id)}
+                    canMoveUp={
+                      unit.kind === "medley" ? withinIndex > 0 : unitIndex > 0
+                    }
+                    canMoveDown={
+                      unit.kind === "medley"
+                        ? withinIndex < unit.items.length - 1
+                        : unitIndex < units.length - 1
+                    }
+                    editable={d.can_edit}
+                    revision={d.revision}
+                    serviceId={id}
+                    reload={state.reload}
+                    edit={() =>
+                      navigation.navigate("Arrangement", {
+                        serviceId: id,
+                        itemId: item.id,
+                      })
+                    }
+                    offline={offline}
+                  />
+                ))}
+              </View>
+            ),
+          )}
+          {medleyEditing !== undefined && (
+            <MedleyEditor
+              key={medleyEditing || "new"}
+              detail={d}
+              groupId={medleyEditing}
+              onClose={() => setMedleyEditing(undefined)}
+              onSaved={state.reload}
+              onDirtyChange={setMedleyDirty}
             />
-          ))}
+          )}
           <Card>
             <Title>Latihan & metronom</Title>
             <Body muted>
@@ -279,18 +374,22 @@ function RosterEditor({
 function SongRow({
   item,
   index,
-  count,
+  canMoveUp,
+  canMoveDown,
   editable,
   revision,
+  serviceId,
   reload,
   edit,
   offline,
 }: {
   item: api.SetlistItem;
   index: number;
-  count: number;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   editable: boolean;
   revision: number;
+  serviceId: string;
   reload: () => Promise<void>;
   edit: () => void;
   offline: boolean;
@@ -362,7 +461,7 @@ function SongRow({
           <Button title="Edit aransemen" onPress={edit} />
           <Button
             title="↑ Lagu"
-            disabled={action.busy || index === 0}
+            disabled={action.busy || !canMoveUp}
             onPress={() =>
               void action.run(async () => {
                 try {
@@ -375,7 +474,7 @@ function SongRow({
           />
           <Button
             title="↓ Lagu"
-            disabled={action.busy || index === count - 1}
+            disabled={action.busy || !canMoveDown}
             onPress={() =>
               void action.run(async () => {
                 try {
@@ -397,7 +496,7 @@ function SongRow({
                   style: "destructive",
                   onPress: () =>
                     void action.run(async () => {
-                      await api.deleteRow("setlist_items", item.id);
+                      await api.deleteSetlistItem(serviceId, revision, item.id);
                       await reload();
                     }),
                 },

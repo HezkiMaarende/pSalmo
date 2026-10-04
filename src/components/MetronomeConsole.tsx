@@ -13,6 +13,11 @@ import type { ServiceDetail, SetlistItem } from "../lib/church";
 import type { ClickSettings } from "../domain/metronome";
 import { Feedback } from "./ui";
 import { songLabel } from "../domain/songLabel";
+import {
+  buildSetlistUnits,
+  medleyContext,
+  medleyLabel,
+} from "../domain/medley";
 
 type Props = {
   detail: ServiceDetail;
@@ -33,6 +38,9 @@ type Props = {
   onStop(): void;
   onView(view: "setlist" | "practice"): void;
   onAdd(): void;
+  onMedleyEdit(groupId: string | null): void;
+  onMoveGroup(groupId: string, direction: "up" | "down"): void;
+  onMoveSong(itemId: string, direction: "up" | "down"): void;
   children: React.ReactNode;
 };
 
@@ -157,39 +165,123 @@ export function MetronomeConsole(props: Props) {
         </View>
         {setlist && (
           <View>
-            {detail.items.map((song, position) => (
-              <Pressable
-                key={song.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${position + 1}. ${songLabel(song.proposed_title, song.key)}, ${song.bpm ?? "BPM belum diatur"}${song.bpm ? " BPM" : ""}, ${song.time_signature || "birama belum diatur"}`}
-                accessibilityState={{
-                  selected: song.id === item.id,
-                  disabled: busy,
-                }}
-                disabled={busy}
-                onPress={() => {
-                  if (song.id !== item.id) props.onSelect(song.id);
-                }}
-                style={({ pressed }) => [
-                  s.track,
-                  song.id === item.id && s.selectedTrack,
-                  pressed && s.pressed,
-                ]}
-              >
-                <Text style={s.trackNumber}>{position + 1}.</Text>
-                <Text
-                  style={[s.trackTitle, song.id === item.id && s.selectedTitle]}
-                >
-                  {songLabel(song.proposed_title, song.key)}
-                </Text>
-                <View style={s.trackSettings}>
-                  <Text style={s.trackBpm}>
-                    {song.bpm ?? "—"} <Text style={s.small}>bpm</Text>
-                  </Text>
-                  <Text style={s.muted}>{song.time_signature || "—"}</Text>
+            {editing && (
+              <IconButton
+                label="Buat medley"
+                icon="+M"
+                disabled={busy || detail.items.length < 2}
+                onPress={() => props.onMedleyEdit(null)}
+              />
+            )}
+            {buildSetlistUnits(detail.items, detail.medley_groups).map(
+              (unit, unitIndex, units) => (
+                <View key={unit.key}>
+                  {unit.kind === "medley" && (
+                    <View style={s.setlistHeader}>
+                      <Text style={s.setlistTitle}>
+                        {medleyLabel(unit.group)} · {unit.items.length} lagu
+                      </Text>
+                      {editing && (
+                        <IconButton
+                          label={`Edit ${medleyLabel(unit.group)}`}
+                          icon="✎"
+                          disabled={busy}
+                          onPress={() => props.onMedleyEdit(unit.group.id)}
+                        />
+                      )}
+                      {editing && (
+                        <IconButton
+                          label={`Naikkan ${medleyLabel(unit.group)}`}
+                          icon="↑"
+                          disabled={busy || unitIndex === 0}
+                          onPress={() => props.onMoveGroup(unit.group.id, "up")}
+                        />
+                      )}
+                      {editing && (
+                        <IconButton
+                          label={`Turunkan ${medleyLabel(unit.group)}`}
+                          icon="↓"
+                          disabled={busy || unitIndex === units.length - 1}
+                          onPress={() =>
+                            props.onMoveGroup(unit.group.id, "down")
+                          }
+                        />
+                      )}
+                    </View>
+                  )}
+                  {unit.items.map((song, withinIndex) => {
+                    const position = detail.items.findIndex(
+                      (entry) => entry.id === song.id,
+                    );
+                    return (
+                      <View key={song.id}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`${position + 1}. ${songLabel(song.proposed_title, song.key)}, ${song.bpm ?? "BPM belum diatur"}${song.bpm ? " BPM" : ""}, ${song.time_signature || "birama belum diatur"}`}
+                          accessibilityState={{
+                            selected: song.id === item.id,
+                            disabled: busy,
+                          }}
+                          disabled={busy}
+                          onPress={() => {
+                            if (song.id !== item.id) props.onSelect(song.id);
+                          }}
+                          style={({ pressed }) => [
+                            s.track,
+                            song.id === item.id && s.selectedTrack,
+                            pressed && s.pressed,
+                          ]}
+                        >
+                          <Text style={s.trackNumber}>{position + 1}.</Text>
+                          <Text
+                            style={[
+                              s.trackTitle,
+                              song.id === item.id && s.selectedTitle,
+                            ]}
+                          >
+                            {songLabel(song.proposed_title, song.key)}
+                          </Text>
+                          <View style={s.trackSettings}>
+                            <Text style={s.trackBpm}>
+                              {song.bpm ?? "—"} <Text style={s.small}>bpm</Text>
+                            </Text>
+                            <Text style={s.muted}>
+                              {song.time_signature || "—"}
+                            </Text>
+                          </View>
+                        </Pressable>
+                        {editing && (
+                          <View style={s.setlistHeader}>
+                            <IconButton
+                              label={`Naikkan ${songLabel(song.proposed_title, song.key)}`}
+                              icon="↑"
+                              disabled={
+                                busy ||
+                                (unit.kind === "medley"
+                                  ? withinIndex === 0
+                                  : unitIndex === 0)
+                              }
+                              onPress={() => props.onMoveSong(song.id, "up")}
+                            />
+                            <IconButton
+                              label={`Turunkan ${songLabel(song.proposed_title, song.key)}`}
+                              icon="↓"
+                              disabled={
+                                busy ||
+                                (unit.kind === "medley"
+                                  ? withinIndex === unit.items.length - 1
+                                  : unitIndex === units.length - 1)
+                              }
+                              onPress={() => props.onMoveSong(song.id, "down")}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
                 </View>
-              </Pressable>
-            ))}
+              ),
+            )}
           </View>
         )}
         <View style={s.activeSong}>
@@ -199,6 +291,11 @@ export function MetronomeConsole(props: Props) {
           <Text style={s.songTitle} accessibilityRole="header">
             {songLabel(item.proposed_title, item.key)}
           </Text>
+          {!!medleyContext(item, detail.items, detail.medley_groups) && (
+            <Text style={s.muted}>
+              {medleyContext(item, detail.items, detail.medley_groups)}
+            </Text>
+          )}
           <Text style={s.muted}>
             {[item.artist, item.key ? `Nada ${item.key}` : ""]
               .filter(Boolean)

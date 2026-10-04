@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Alert, AppState, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MetronomeConsole } from "../components/MetronomeConsole";
+import { MedleyEditor } from "../components/MedleyEditor";
 import { TimeSignaturePicker } from "../components/TimeSignaturePicker";
 import { useIsFocused, usePreventRemove } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -34,17 +35,24 @@ export function PracticeScreen({
   const { colors } = useTheme();
   const player = useClickPlayer();
   const [editorState, setEditorState] = useState({ dirty: false, busy: false });
-  usePreventRemove(editorState.dirty || editorState.busy, ({ data }) => {
-    if (editorState.busy) return;
-    Alert.alert("Perubahan belum disimpan", "Kembali tanpa menyimpan?", [
-      { text: "Tetap di sini", style: "cancel" },
-      {
-        text: "Abaikan perubahan",
-        style: "destructive",
-        onPress: () => navigation.dispatch(data.action),
-      },
-    ]);
-  });
+  const [medleyEditing, setMedleyEditing] = useState<string | null | undefined>(
+    undefined,
+  );
+  const [medleyDirty, setMedleyDirty] = useState(false);
+  usePreventRemove(
+    editorState.dirty || editorState.busy || medleyDirty,
+    ({ data }) => {
+      if (editorState.busy) return;
+      Alert.alert("Perubahan belum disimpan", "Kembali tanpa menyimpan?", [
+        { text: "Tetap di sini", style: "cancel" },
+        {
+          text: "Abaikan perubahan",
+          style: "destructive",
+          onPress: () => navigation.dispatch(data.action),
+        },
+      ]);
+    },
+  );
   const state = useLoad(
     () => api.getServiceDetail(route.params.serviceId),
     [route.params.serviceId],
@@ -72,6 +80,17 @@ export function PracticeScreen({
               serviceId: route.params.serviceId,
             })
           }
+          onMedleyEdit={setMedleyEditing}
+        />
+      )}
+      {state.data && medleyEditing !== undefined && (
+        <MedleyEditor
+          key={medleyEditing || "new"}
+          detail={state.data}
+          groupId={medleyEditing}
+          onClose={() => setMedleyEditing(undefined)}
+          onSaved={state.reload}
+          onDirtyChange={setMedleyDirty}
         />
       )}
     </SafeAreaView>
@@ -82,17 +101,20 @@ function PracticeSession({
   detail,
   reload,
   onAdd,
+  onMedleyEdit,
   editorState,
   setEditorState,
 }: {
   editorState: { dirty: boolean; busy: boolean };
   setEditorState: (state: { dirty: boolean; busy: boolean }) => void;
   onAdd: () => void;
+  onMedleyEdit: (groupId: string | null) => void;
   detail: api.ServiceDetail;
   reload: () => Promise<void>;
 }) {
   const player = useClickPlayer();
   const isFocused = useIsFocused();
+  const reorder = useAction(reload);
   const [appActive, setAppActive] = useState(
     AppState.currentState === "active",
   );
@@ -195,8 +217,8 @@ function PracticeSession({
       starting={starting}
       audioActive={player.playing || player.starting}
       view={view}
-      busy={editorState.busy}
-      error={settingsError || notice}
+      busy={editorState.busy || reorder.busy}
+      error={reorder.error || settingsError || notice}
       audioAvailable={nativeClickAvailable}
       audioNotice={nativeClickNotice}
       onSelect={select}
@@ -206,6 +228,26 @@ function PracticeSession({
         if (next !== view) transition(() => setView(next), detail.can_edit);
       }}
       onAdd={() => transition(onAdd)}
+      onMedleyEdit={(groupId) => transition(() => onMedleyEdit(groupId))}
+      onMoveGroup={(groupId, direction) =>
+        transition(() => {
+          void reorder.run(() =>
+            api.moveMedleyGroup(
+              detail.service.id,
+              detail.revision,
+              groupId,
+              direction,
+            ),
+          );
+        })
+      }
+      onMoveSong={(itemId, direction) =>
+        transition(() => {
+          void reorder.run(() =>
+            api.moveSetlistItem(itemId, direction, detail.revision),
+          );
+        })
+      }
     >
       {view === "setlist" && detail.can_edit && (
         <ClickEditor

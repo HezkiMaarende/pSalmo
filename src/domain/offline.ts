@@ -13,8 +13,9 @@ import type {
 } from "./service";
 import { upcomingSunday } from "./calendar";
 import { activeAnnouncements, type Announcement } from "./announcements";
+import type { MedleyGroup } from "./medley";
 
-export const OFFLINE_VERSION = 2 as const;
+export const OFFLINE_VERSION = 3 as const;
 export const OFFLINE_VALID_MS = 7 * 24 * 60 * 60 * 1000;
 export const OFFLINE_REFRESH_MS = 15 * 60 * 1000;
 export const OFFLINE_PLAINTEXT_LIMIT = 2 * 1024 * 1024;
@@ -64,6 +65,7 @@ interface OfflineReference {
 interface OfflineSetlistItem {
   id: string;
   position: number;
+  medley_group_id: string | null;
   song_id: string | null;
   proposed_title: string | null;
   artist: string | null;
@@ -80,6 +82,7 @@ export interface OfflineServiceDetail {
   service: OfflineService;
   revision: number;
   items: OfflineSetlistItem[];
+  medley_groups: MedleyGroup[];
   can_edit: boolean;
   assignments: (OfflineRosterRow & {
     person_id: string | null;
@@ -105,7 +108,7 @@ export interface OfflineStatus {
   cachedServiceCount: number;
 }
 
-export interface OfflineSnapshotV2 extends OfflineIdentity {
+export interface OfflineSnapshotV3 extends OfflineIdentity {
   version: typeof OFFLINE_VERSION;
   syncedAt: string;
   sundays: string[];
@@ -155,9 +158,9 @@ export function sanitizeOfflineWeeks(
   }));
 }
 
-export function isOfflineSnapshot(value: unknown): value is OfflineSnapshotV2 {
+export function isOfflineSnapshot(value: unknown): value is OfflineSnapshotV3 {
   if (!value || typeof value !== "object") return false;
-  const item = value as Partial<OfflineSnapshotV2>;
+  const item = value as Partial<OfflineSnapshotV3>;
   return (
     item.version === OFFLINE_VERSION &&
     typeof item.userId === "string" &&
@@ -171,18 +174,25 @@ export function isOfflineSnapshot(value: unknown): value is OfflineSnapshotV2 {
     Array.isArray(item.services) &&
     !!item.details &&
     typeof item.details === "object" &&
+    Object.values(item.details).every(
+      (detail) =>
+        !!detail &&
+        Array.isArray(detail.medley_groups) &&
+        Array.isArray(detail.items) &&
+        detail.items.every((song) => "medley_group_id" in song),
+    ) &&
     Array.isArray(item.announcements)
   );
 }
 
-export function offlineExpiry(snapshot: OfflineSnapshotV2): string {
+export function offlineExpiry(snapshot: OfflineSnapshotV3): string {
   return new Date(
     new Date(snapshot.verifiedAt).getTime() + OFFLINE_VALID_MS,
   ).toISOString();
 }
 
 export function canUseOfflineSnapshot(
-  snapshot: OfflineSnapshotV2,
+  snapshot: OfflineSnapshotV3,
   userId: string,
   teamId: string,
   now = new Date(),
@@ -197,7 +207,7 @@ export function canUseOfflineSnapshot(
 }
 
 export function shouldRefreshOffline(
-  snapshot: OfflineSnapshotV2 | null,
+  snapshot: OfflineSnapshotV3 | null,
   now = new Date(),
 ): boolean {
   if (!snapshot) return true;
@@ -208,7 +218,7 @@ export function shouldRefreshOffline(
 }
 
 export function cachedSchedule(
-  snapshot: OfflineSnapshotV2,
+  snapshot: OfflineSnapshotV3,
   from: string,
   to: string,
 ): OfflineScheduleWeek[] {
@@ -218,7 +228,7 @@ export function cachedSchedule(
 }
 
 export function cachedServices(
-  snapshot: OfflineSnapshotV2,
+  snapshot: OfflineSnapshotV3,
   from: string,
   to: string,
 ): OfflineService[] {
@@ -228,14 +238,14 @@ export function cachedServices(
 }
 
 export function cachedAnnouncements(
-  snapshot: OfflineSnapshotV2,
+  snapshot: OfflineSnapshotV3,
   now = new Date(),
 ): Announcement[] {
   return activeAnnouncements(snapshot.announcements, now);
 }
 
 export function sealOfflineSnapshot(
-  snapshot: OfflineSnapshotV2,
+  snapshot: OfflineSnapshotV3,
   secretHex: string,
   nonce: Uint8Array,
 ): string {
@@ -251,7 +261,7 @@ export function sealOfflineSnapshot(
 export function openOfflineSnapshot(
   payload: string,
   secretHex: string,
-): OfflineSnapshotV2 {
+): OfflineSnapshotV3 {
   const [nonce, ciphertext, extra] = payload.split(":");
   if (!nonce || !ciphertext || extra)
     throw new Error("Payload offline tidak lengkap.");

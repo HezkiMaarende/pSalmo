@@ -3,21 +3,25 @@ import { bytesToHex } from "@noble/ciphers/utils.js";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import {
-  OfflineSnapshotV2,
+  OfflineSnapshotV3,
   openOfflineSnapshot,
   sealOfflineSnapshot,
 } from "../domain/offline";
 
-const KEY_NAME = "psalmo.offline.v2.key";
-const DATA_NAME = "psalmo.offline.v2.data";
-const LEGACY_KEY_NAME = "psalmo.offline.v1.key";
-const LEGACY_DATA_NAME = "psalmo.offline.v1.data";
+const KEY_NAME = "psalmo.offline.v3.key";
+const DATA_NAME = "psalmo.offline.v3.data";
+const LEGACY = [
+  ["psalmo.offline.v1.key", "psalmo.offline.v1.data"],
+  ["psalmo.offline.v2.key", "psalmo.offline.v2.data"],
+] as const;
 
 async function clearLegacyOfflineSnapshot(): Promise<void> {
-  await Promise.all([
-    AsyncStorage.removeItem(LEGACY_DATA_NAME),
-    SecureStore.deleteItemAsync(LEGACY_KEY_NAME),
-  ]);
+  await Promise.all(
+    LEGACY.flatMap(([key, data]) => [
+      AsyncStorage.removeItem(data),
+      SecureStore.deleteItemAsync(key),
+    ]),
+  );
 }
 
 export async function clearOfflineSnapshot(): Promise<void> {
@@ -28,7 +32,7 @@ export async function clearOfflineSnapshot(): Promise<void> {
   ]);
 }
 
-export async function readOfflineSnapshot(): Promise<OfflineSnapshotV2 | null> {
+export async function readOfflineSnapshot(): Promise<OfflineSnapshotV3 | null> {
   await clearLegacyOfflineSnapshot();
   const [secret, payload] = await Promise.all([
     SecureStore.getItemAsync(KEY_NAME),
@@ -47,7 +51,7 @@ export async function readOfflineSnapshot(): Promise<OfflineSnapshotV2 | null> {
 }
 
 export async function replaceOfflineSnapshot(
-  snapshot: OfflineSnapshotV2,
+  snapshot: OfflineSnapshotV3,
 ): Promise<void> {
   let secret = await SecureStore.getItemAsync(KEY_NAME);
   const created = !secret;

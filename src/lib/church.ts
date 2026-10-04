@@ -92,6 +92,7 @@ export interface ScheduleWeek {
 export interface SetlistItem {
   id: string;
   position: number;
+  medley_group_id: string | null;
   song_id: string | null;
   proposed_title: string | null;
   artist: string | null;
@@ -108,6 +109,7 @@ export interface ServiceDetail {
   service: Service;
   revision: number;
   items: SetlistItem[];
+  medley_groups: import("../domain/medley").MedleyGroup[];
   can_edit: boolean;
   assignments: (RosterRow & {
     person_id: string | null;
@@ -390,12 +392,22 @@ export async function getServiceDetail(id: string): Promise<ServiceDetail> {
           .order("position"),
       ) as SetlistItem[])
     : [];
+  const medley_groups = l.data
+    ? (unwrap(
+        await supabase
+          .from("medley_groups")
+          .select("id,setlist_id,position,label")
+          .eq("setlist_id", l.data.id)
+          .order("position"),
+      ) as ServiceDetail["medley_groups"])
+    : [];
   const editable = await rpc("service_edit_permission", {
     target_service_id: id,
   });
   return {
     service,
     items,
+    medley_groups,
     revision: l.data?.revision || 1,
     assignments: unwrap(a),
     notes: unwrap(n),
@@ -676,6 +688,58 @@ export async function moveSetlistItem(
     item_id: id,
     move_direction: direction,
     expected_revision: revision,
+  });
+}
+export async function saveMedleyGroup(
+  serviceId: string,
+  revision: number,
+  groupId: string | null,
+  firstId: string,
+  lastId: string,
+  label: string,
+): Promise<void> {
+  await rpc("save_medley_group", {
+    target_service_id: serviceId,
+    expected_revision: revision,
+    target_group_id: groupId,
+    first_item_id: firstId,
+    last_item_id: lastId,
+    group_label: label,
+  });
+}
+export async function dissolveMedleyGroup(
+  serviceId: string,
+  revision: number,
+  groupId: string,
+): Promise<void> {
+  await rpc("dissolve_medley_group", {
+    target_service_id: serviceId,
+    expected_revision: revision,
+    target_group_id: groupId,
+  });
+}
+export async function moveMedleyGroup(
+  serviceId: string,
+  revision: number,
+  groupId: string,
+  direction: "up" | "down",
+): Promise<void> {
+  await rpc("move_medley_group", {
+    target_service_id: serviceId,
+    expected_revision: revision,
+    target_group_id: groupId,
+    move_direction: direction,
+  });
+}
+export async function deleteSetlistItem(
+  serviceId: string,
+  revision: number,
+  itemId: string,
+): Promise<void> {
+  await rpc("delete_setlist_item", {
+    target_service_id: serviceId,
+    expected_revision: revision,
+    target_item_id: itemId,
   });
 }
 export async function addReviewedSongs(

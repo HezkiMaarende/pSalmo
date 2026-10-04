@@ -163,8 +163,10 @@ export function Field({
         onChangeText={onChangeText}
         multiline={multiline}
         secureTextEntry={secure}
-        autoCapitalize={secure || /email/i.test(label) ? "none" : "sentences"}
-        autoCorrect={!secure && !/email/i.test(label)}
+        autoCapitalize={
+          secure || /email|url|tautan/i.test(label) ? "none" : "sentences"
+        }
+        autoCorrect={!secure && !/email|url|tautan/i.test(label)}
       />
     </View>
   );

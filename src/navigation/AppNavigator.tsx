@@ -33,11 +33,12 @@ import {
 import { PeopleScreen } from "../screens/PeopleScreen";
 import { LibraryImportScreen } from "../screens/LibraryImportScreen";
 import { PracticeScreen } from "../screens/PracticeScreen";
+import { ProfileScreen, RulesScreen } from "../screens/ProfileScreen";
 import {
-  ProfileScreen,
+  AnnouncementEditScreen,
+  AnnouncementScreen,
   AnnouncementsScreen,
-  RulesScreen,
-} from "../screens/ProfileScreen";
+} from "../screens/AnnouncementScreens";
 const Stack = createNativeStackNavigator<Routes>();
 const RootStack = createNativeStackNavigator<RootRoutes>();
 const Tabs = createBottomTabNavigator();
@@ -91,6 +92,16 @@ function PageStack({
         name="Announcements"
         component={AnnouncementsScreen}
         options={{ title: "Pengumuman" }}
+      />
+      <Stack.Screen
+        name="Announcement"
+        component={AnnouncementScreen}
+        options={{ title: "Pengumuman" }}
+      />
+      <Stack.Screen
+        name="AnnouncementEdit"
+        component={AnnouncementEditScreen}
+        options={{ title: "Kelola Pengumuman" }}
       />
       <Stack.Screen
         name="Profile"

@@ -12,8 +12,9 @@ import type {
   SongStructureSection,
 } from "./service";
 import { upcomingSunday } from "./calendar";
+import { activeAnnouncements, type Announcement } from "./announcements";
 
-export const OFFLINE_VERSION = 1 as const;
+export const OFFLINE_VERSION = 2 as const;
 export const OFFLINE_VALID_MS = 7 * 24 * 60 * 60 * 1000;
 export const OFFLINE_REFRESH_MS = 15 * 60 * 1000;
 export const OFFLINE_PLAINTEXT_LIMIT = 2 * 1024 * 1024;
@@ -104,13 +105,14 @@ export interface OfflineStatus {
   cachedServiceCount: number;
 }
 
-export interface OfflineSnapshotV1 extends OfflineIdentity {
+export interface OfflineSnapshotV2 extends OfflineIdentity {
   version: typeof OFFLINE_VERSION;
   syncedAt: string;
   sundays: string[];
   weeks: OfflineScheduleWeek[];
   services: OfflineService[];
   details: Record<string, OfflineServiceDetail>;
+  announcements: Announcement[];
 }
 
 export function nextFourSundays(now = new Date()): string[] {
@@ -153,9 +155,9 @@ export function sanitizeOfflineWeeks(
   }));
 }
 
-export function isOfflineSnapshot(value: unknown): value is OfflineSnapshotV1 {
+export function isOfflineSnapshot(value: unknown): value is OfflineSnapshotV2 {
   if (!value || typeof value !== "object") return false;
-  const item = value as Partial<OfflineSnapshotV1>;
+  const item = value as Partial<OfflineSnapshotV2>;
   return (
     item.version === OFFLINE_VERSION &&
     typeof item.userId === "string" &&
@@ -168,18 +170,19 @@ export function isOfflineSnapshot(value: unknown): value is OfflineSnapshotV1 {
     Array.isArray(item.weeks) &&
     Array.isArray(item.services) &&
     !!item.details &&
-    typeof item.details === "object"
+    typeof item.details === "object" &&
+    Array.isArray(item.announcements)
   );
 }
 
-export function offlineExpiry(snapshot: OfflineSnapshotV1): string {
+export function offlineExpiry(snapshot: OfflineSnapshotV2): string {
   return new Date(
     new Date(snapshot.verifiedAt).getTime() + OFFLINE_VALID_MS,
   ).toISOString();
 }
 
 export function canUseOfflineSnapshot(
-  snapshot: OfflineSnapshotV1,
+  snapshot: OfflineSnapshotV2,
   userId: string,
   teamId: string,
   now = new Date(),
@@ -194,7 +197,7 @@ export function canUseOfflineSnapshot(
 }
 
 export function shouldRefreshOffline(
-  snapshot: OfflineSnapshotV1 | null,
+  snapshot: OfflineSnapshotV2 | null,
   now = new Date(),
 ): boolean {
   if (!snapshot) return true;
@@ -205,7 +208,7 @@ export function shouldRefreshOffline(
 }
 
 export function cachedSchedule(
-  snapshot: OfflineSnapshotV1,
+  snapshot: OfflineSnapshotV2,
   from: string,
   to: string,
 ): OfflineScheduleWeek[] {
@@ -215,7 +218,7 @@ export function cachedSchedule(
 }
 
 export function cachedServices(
-  snapshot: OfflineSnapshotV1,
+  snapshot: OfflineSnapshotV2,
   from: string,
   to: string,
 ): OfflineService[] {
@@ -224,8 +227,15 @@ export function cachedServices(
   );
 }
 
+export function cachedAnnouncements(
+  snapshot: OfflineSnapshotV2,
+  now = new Date(),
+): Announcement[] {
+  return activeAnnouncements(snapshot.announcements, now);
+}
+
 export function sealOfflineSnapshot(
-  snapshot: OfflineSnapshotV1,
+  snapshot: OfflineSnapshotV2,
   secretHex: string,
   nonce: Uint8Array,
 ): string {
@@ -241,7 +251,7 @@ export function sealOfflineSnapshot(
 export function openOfflineSnapshot(
   payload: string,
   secretHex: string,
-): OfflineSnapshotV1 {
+): OfflineSnapshotV2 {
   const [nonce, ciphertext, extra] = payload.split(":");
   if (!nonce || !ciphertext || extra)
     throw new Error("Payload offline tidak lengkap.");

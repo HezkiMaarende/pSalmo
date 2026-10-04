@@ -14,6 +14,14 @@ import type {
   LibraryImportEntry,
   LibraryImportResult,
 } from "../domain/libraryImport";
+import {
+  normalizeAnnouncementInput,
+  type Announcement,
+  type AnnouncementAction,
+  type AnnouncementInput,
+} from "../domain/announcements";
+import { jakartaDay } from "../domain/calendar";
+export type { Announcement } from "../domain/announcements";
 export const CHURCH_NAME = "GPdI Elshaddai Magelang";
 export const churchId = process.env.EXPO_PUBLIC_CHURCH_TEAM_ID || "";
 export interface Membership {
@@ -203,6 +211,97 @@ export async function saveProfileName(
     .update({ display_name: name.trim() })
     .eq("id", userId);
   if (r.error) throw new Error(r.error.message);
+}
+
+export async function listActiveAnnouncements(): Promise<Announcement[]> {
+  return unwrap(
+    await supabase
+      .from("announcements")
+      .select("*")
+      .eq("team_id", churchId)
+      .is("archived_at", null)
+      .not("published_at", "is", null)
+      .or(`expires_on.is.null,expires_on.gte.${jakartaDay()}`)
+      .order("pinned", { ascending: false })
+      .order("published_at", { ascending: false }),
+  ) as Announcement[];
+}
+
+export async function listAnnouncements(): Promise<Announcement[]> {
+  return unwrap(
+    await supabase
+      .from("announcements")
+      .select("*")
+      .eq("team_id", churchId)
+      .order("updated_at", { ascending: false }),
+  ) as Announcement[];
+}
+
+export async function getAnnouncement(id: string): Promise<Announcement> {
+  return unwrap(
+    await supabase
+      .from("announcements")
+      .select("*")
+      .eq("team_id", churchId)
+      .eq("id", id)
+      .single(),
+  ) as Announcement;
+}
+
+export async function saveAnnouncement(
+  id: string | null,
+  userId: string,
+  input: AnnouncementInput,
+): Promise<string> {
+  const data = normalizeAnnouncementInput(input);
+  if (!id) {
+    return unwrap(
+      await supabase
+        .from("announcements")
+        .insert({
+          ...data,
+          team_id: churchId,
+          created_by: userId,
+          updated_by: userId,
+        })
+        .select("id")
+        .single(),
+    ).id;
+  }
+  return unwrap(
+    await supabase
+      .from("announcements")
+      .update({ ...data, updated_by: userId })
+      .eq("team_id", churchId)
+      .eq("id", id)
+      .select("id")
+      .single(),
+  ).id;
+}
+
+export async function setAnnouncementPinned(
+  id: string,
+  userId: string,
+  pinned: boolean,
+): Promise<void> {
+  const result = await supabase
+    .from("announcements")
+    .update({ pinned, updated_by: userId })
+    .eq("team_id", churchId)
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (result.error) throw asChurchApiError(result.error);
+}
+
+export async function transitionAnnouncement(
+  id: string,
+  action: AnnouncementAction,
+): Promise<void> {
+  await rpc("transition_announcement", {
+    target_announcement_id: id,
+    target_action: action,
+  });
 }
 export async function readSchedule(
   from: string,

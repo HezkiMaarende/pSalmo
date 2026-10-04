@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {
   OFFLINE_VALID_MS,
+  cachedAnnouncements,
   cachedSchedule,
   cachedServices,
   canUseOfflineSnapshot,
@@ -30,7 +31,7 @@ function service(id, day = "2026-09-27") {
 
 function snapshot(overrides = {}) {
   return {
-    version: 1,
+    version: 2,
     userId: "user-a",
     teamId: "church",
     membership: { role: "member", song_editor: false },
@@ -48,6 +49,7 @@ function snapshot(overrides = {}) {
     ],
     services: [service("one"), service("two", "2026-10-04")],
     details: {},
+    announcements: [],
     ...overrides,
   };
 }
@@ -103,6 +105,12 @@ test("encrypted snapshot round-trips and rejects tampering or the wrong key", ()
   const last = payload.endsWith("0") ? "1" : "0";
   assert.throws(() => openOfflineSnapshot(payload.slice(0, -1) + last, key));
   assert.throws(() => openOfflineSnapshot(payload, "22".repeat(32)));
+  const legacy = sealOfflineSnapshot(
+    { ...value, version: 1 },
+    key,
+    new Uint8Array(12).fill(8),
+  );
+  assert.throws(() => openOfflineSnapshot(legacy, key));
 });
 
 test("offline detail is read-only and contains no account-link identifiers", () => {
@@ -150,6 +158,40 @@ test("cache queries cannot return data outside the requested range", () => {
   );
 });
 
+test("offline announcements are re-filtered for expiry and ordered", () => {
+  const base = {
+    team_id: "church",
+    body: "Isi",
+    external_url: null,
+    expires_on: null,
+    published_at: "2026-10-01T00:00:00Z",
+    archived_at: null,
+    created_by: "owner",
+    updated_by: "owner",
+    created_at: "2026-10-01T00:00:00Z",
+    updated_at: "2026-10-01T00:00:00Z",
+  };
+  const value = snapshot({
+    announcements: [
+      { ...base, id: "normal", title: "Normal", pinned: false },
+      { ...base, id: "pin", title: "Pin", pinned: true },
+      {
+        ...base,
+        id: "expired",
+        title: "Expired",
+        pinned: true,
+        expires_on: "2026-10-02",
+      },
+    ],
+  });
+  assert.deepEqual(
+    cachedAnnouncements(value, new Date("2026-10-03T05:00:00Z")).map(
+      (item) => item.id,
+    ),
+    ["pin", "normal"],
+  );
+});
+
 test("cancelled and archived services are never eligible for cache", () => {
   assert.equal(eligibleOfflineService({ status: "draft" }), true);
   assert.equal(eligibleOfflineService({ status: "approved" }), true);
@@ -164,6 +206,7 @@ test("offline UI uses centralized loaders and centralized sign-out", () => {
   const serviceScreen = read("src/screens/ServiceScreens.tsx");
   const profile = read("src/screens/ProfileScreen.tsx");
   const app = read("App.tsx");
+  const storage = read("src/lib/offlineStorage.ts");
   assert.match(weekly, /church\.loadSchedule/);
   assert.match(weekly, /church\.loadServices/);
   assert.match(serviceScreen, /church\.loadServiceDetail/);
@@ -175,4 +218,6 @@ test("offline UI uses centralized loaders and centralized sign-out", () => {
   assert.match(app, /church\.signOut/);
   assert.doesNotMatch(profile, /supabase\.auth\.signOut/);
   assert.doesNotMatch(app, /supabase\.auth\.signOut/);
+  assert.match(storage, /psalmo\.offline\.v2\.data/);
+  assert.match(storage, /LEGACY_DATA_NAME = "psalmo\.offline\.v1\.data"/);
 });

@@ -399,6 +399,10 @@ test("Import API sends one RPC; summary pagination excludes lyrics and crosses r
     if (name === "../domain/youtube") return { youtubeId: () => null };
     if (name === "../domain/metronome") return { defaultMeter: () => "4/4" };
     if (name === "../domain/songLabel") return { requiredSongTitle: (v) => v };
+    if (name === "../domain/announcements")
+      return { normalizeAnnouncementInput: (v) => v };
+    if (name === "../domain/calendar")
+      return { jakartaDay: () => "2026-10-04" };
     throw Error(name);
   });
   assert.equal((await api.listSongIdentities()).length, 501);

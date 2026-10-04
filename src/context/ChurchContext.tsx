@@ -12,13 +12,14 @@ import { supabase } from "../lib/supabase";
 import * as api from "../lib/church";
 import {
   canUseOfflineSnapshot,
+  cachedAnnouncements,
   cachedSchedule,
   cachedServices,
   eligibleOfflineService,
   ConnectionState,
   nextFourSundays,
   OFFLINE_VERSION,
-  OfflineSnapshotV1,
+  OfflineSnapshotV2,
   offlineExpiry,
   sanitizeOfflineDetail,
   sanitizeOfflineWeeks,
@@ -42,6 +43,7 @@ type State = {
   lastSyncedAt: string | null;
   offlineExpiresAt: string | null;
   cachedServiceCount: number;
+  cachedAnnouncementCount: number;
   syncingOffline: boolean;
   refresh: () => Promise<void>;
   refreshOffline: () => Promise<void>;
@@ -50,6 +52,8 @@ type State = {
   loadSchedule: (from: string, to: string) => Promise<api.ScheduleWeek[]>;
   loadServices: (from: string, to: string) => Promise<api.Service[]>;
   loadServiceDetail: (id: string) => Promise<api.ServiceDetail>;
+  loadAnnouncements: () => Promise<api.Announcement[]>;
+  loadAnnouncement: (id: string) => Promise<api.Announcement>;
 };
 const Context = createContext<State>(null!);
 export const useChurch = () => useContext(Context);
@@ -61,16 +65,16 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [connection, setConnection] = useState<ConnectionState>("online");
-  const [snapshot, setSnapshot] = useState<OfflineSnapshotV1 | null>(null);
+  const [snapshot, setSnapshot] = useState<OfflineSnapshotV2 | null>(null);
   const [syncingOffline, setSyncingOffline] = useState(false);
   const version = useRef(0);
   const sessionRef = useRef<Session | null>(null);
-  const snapshotRef = useRef<OfflineSnapshotV1 | null>(null);
+  const snapshotRef = useRef<OfflineSnapshotV2 | null>(null);
   const identityRef = useRef<Identity | null>(null);
   const onlineVerifiedRef = useRef(false);
   const syncPromise = useRef<Promise<void> | null>(null);
 
-  const rememberSnapshot = useCallback((value: OfflineSnapshotV1 | null) => {
+  const rememberSnapshot = useCallback((value: OfflineSnapshotV2 | null) => {
     snapshotRef.current = value;
     setSnapshot(value);
   }, []);
@@ -84,9 +88,10 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
       const sundays = nextFourSundays();
       const from = sundays[0];
       const to = sundays[sundays.length - 1];
-      const [rawWeeks, visible] = await Promise.all([
+      const [rawWeeks, visible, announcements] = await Promise.all([
         api.readSchedule(from, to),
         api.visibleServices(from, to),
+        api.listActiveAnnouncements(),
       ]);
       const weeks = sanitizeOfflineWeeks(rawWeeks);
       const services = visible.filter(eligibleOfflineService);
@@ -101,7 +106,7 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
           ),
         ),
       );
-      const value: OfflineSnapshotV1 = {
+      const value: OfflineSnapshotV2 = {
         version: OFFLINE_VERSION,
         userId: identity.session.user.id,
         teamId: api.churchId,
@@ -113,6 +118,7 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
         weeks,
         services,
         details,
+        announcements,
       };
       await replaceOfflineSnapshot(value);
       rememberSnapshot(value);
@@ -287,7 +293,7 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
   const fallback = useCallback(
     async <T,>(
       network: () => Promise<T>,
-      cached: (value: OfflineSnapshotV1) => T,
+      cached: (value: OfflineSnapshotV2) => T,
     ) => {
       try {
         const value = await network();
@@ -352,6 +358,28 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
       ),
     [fallback],
   );
+  const loadAnnouncements = useCallback(
+    () =>
+      fallback(api.listActiveAnnouncements, (value) =>
+        cachedAnnouncements(value),
+      ),
+    [fallback],
+  );
+  const loadAnnouncement = useCallback(
+    (id: string) =>
+      fallback(
+        () => api.getAnnouncement(id),
+        (value) => {
+          const item = cachedAnnouncements(value).find(
+            (announcement) => announcement.id === id,
+          );
+          if (!item)
+            throw new Error("Pengumuman ini tidak tersedia di data offline.");
+          return item;
+        },
+      ),
+    [fallback],
+  );
   const signOut = useCallback(async () => {
     await clearOffline();
     identityRef.current = null;
@@ -398,6 +426,9 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
         lastSyncedAt: snapshot?.syncedAt || null,
         offlineExpiresAt: snapshot ? offlineExpiry(snapshot) : null,
         cachedServiceCount: snapshot?.services.length || 0,
+        cachedAnnouncementCount: snapshot
+          ? cachedAnnouncements(snapshot).length
+          : 0,
         syncingOffline,
         refresh,
         refreshOffline,
@@ -406,6 +437,8 @@ export function ChurchProvider({ children }: { children: React.ReactNode }) {
         loadSchedule,
         loadServices,
         loadServiceDetail,
+        loadAnnouncements,
+        loadAnnouncement,
       }}
     >
       {children}

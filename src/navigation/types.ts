@@ -4,6 +4,8 @@ export type Routes = {
   Library: undefined;
   LibraryImport: undefined;
   Announcements: undefined;
+  Announcement: { id: string };
+  AnnouncementEdit: { id?: string } | undefined;
   Profile: undefined;
   Week: { day: string };
   Service: { id: string };

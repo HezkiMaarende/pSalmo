@@ -108,7 +108,8 @@ export function ProfileScreen() {
           Berlaku offline sampai: {dateTime(church.offlineExpiresAt)}
         </Body>
         <Body muted>
-          {church.cachedServiceCount} ibadah tersimpan · empat Minggu berikutnya
+          {church.cachedServiceCount} ibadah · {church.cachedAnnouncementCount}{" "}
+          pengumuman tersimpan
         </Body>
         <Feedback
           loading={church.syncingOffline || offlineAction.busy}
@@ -155,14 +156,6 @@ export function ProfileScreen() {
           }
         />
       </Card>
-    </Page>
-  );
-}
-export function AnnouncementsScreen() {
-  return (
-    <Page>
-      <Title>Pengumuman</Title>
-      <Body muted>Belum ada pengumuman.</Body>
     </Page>
   );
 }

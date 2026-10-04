@@ -3,6 +3,10 @@ import { Modal, View, Pressable, Text } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Routes } from "../navigation/types";
 import { homeMessage } from "../domain/weekly";
+import {
+  announcementSummary,
+  homeAnnouncements,
+} from "../domain/announcements";
 import { useChurch } from "../context/ChurchContext";
 import * as api from "../lib/church";
 import {
@@ -58,6 +62,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
     async () => ({
       weeks: await church.loadSchedule(day, day),
       services: await church.loadServices(day, day),
+      announcements: await church.loadAnnouncements(),
     }),
     [
       day,
@@ -65,6 +70,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
       church.membership?.song_editor,
       church.loadSchedule,
       church.loadServices,
+      church.loadAnnouncements,
     ],
   );
   const action = useAction(state.reload);
@@ -72,6 +78,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
   const assigned = week?.services.filter((s) => s.assigned) || [];
   // RLS already filters ordinary members to approved duties, and editors to their WL/MD duties.
   const services = state.data?.services || [];
+  const announcements = homeAnnouncements(state.data?.announcements || []);
   const message = homeMessage(admin, !!week?.published_at, assigned.length);
   return (
     <Page>
@@ -83,6 +90,24 @@ export function HomeScreen({ navigation }: Props<"Home">) {
       {state.data && (
         <>
           {message && <Body>{message}</Body>}
+          {!!announcements.length && (
+            <>
+              <Title>Pengumuman terbaru</Title>
+              {announcements.map((item) => (
+                <Card key={item.id}>
+                  <Title>{item.title}</Title>
+                  <Body>{announcementSummary(item.body)}</Body>
+                  {item.pinned && <Body muted>Disematkan</Body>}
+                  <Button
+                    title="Buka pengumuman"
+                    onPress={() =>
+                      navigation.navigate("Announcement", { id: item.id })
+                    }
+                  />
+                </Card>
+              ))}
+            </>
+          )}
           {admin ? (
             (["ir_1_2", "ir_3"] as const).map((type) => {
               const service = services.find((s) => s.service_type === type);

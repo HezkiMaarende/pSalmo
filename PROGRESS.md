@@ -1,6 +1,6 @@
 # pSalmo Progress Tracker
 
-Last updated: 3 October 2026
+Last updated: 4 October 2026
 
 | Milestone                           | Status                                 | Exit criteria                                                                                                                                                                                           |
 | ----------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -12,6 +12,15 @@ Last updated: 3 October 2026
 | 5. Pilot                            | Preparation in progress                | Private non-live three-role acceptance passes before one worship team uses it for real service preparation; live audio remains separately gated                                                         |
 
 ## This iteration
+
+### Pengumuman V1 · 4 October
+
+- [x] Replace the empty Pengumuman tab with a church-wide feed, full plain-text detail, optional HTTPS link, multi-pin ordering, Jakarta-date expiry and a three-item Home preview. Owner/admin gets Terbit/Draft/Arsip filters, create/edit with a dirty-leave guard, immediate publish/unpublish, pin/unpin, archive and restore-to-draft; ordinary members and off-duty Song Bank editors remain read-only.
+- [x] Apply additive migrations `202610030025_announcements.sql` and `202610040026_announcement_performance.sql`. The `announcements` table is church-scoped with title/body limits, server timestamps, RLS, indexed profile references, column-level grants that exclude lifecycle fields and `DELETE`, and guarded server-time transition RPC. The new rollback fixture passes member/editor/outsider/cross-church denial, active/draft/expired/archive visibility, HTTPS validation, pin ordering, restore-to-draft and no hard delete. All four earlier workflow/import fixtures still pass and roll back.
+- [x] Upgrade the encrypted snapshot to V2 with active published announcements only. Legacy V1 key/ciphertext pairs are cleared rather than partially migrated; cached reads re-check expiry against the current Jakarta day. Drafts/archives are never cached, offline external links are blocked, and Profile reports service plus announcement counts.
+- [x] TypeScript, all **89 tests**, Android JavaScript export and `git diff --check` pass (1,027 modules, 2.05 MB, no bytecode). Security Advisor adds only the expected guarded authenticated `transition_announcement` SECURITY DEFINER notice; the pre-existing private receipt-table info, guarded RPC notices and disabled leaked-password protection remain documented. Performance Advisor no longer reports announcement foreign-key or auth-initplan findings after migration 026; newly created indexes are expected to remain unused until the feature receives traffic.
+- [ ] Final phone acceptance remains deferred: Light/Dark, long text/large fonts, keyboard, dirty Back, filter/actions, external-link handoff, Home/detail navigation, V1 cache cleanup and V2 offline cold-start/expiry must be exercised on the real app. No native/Hermes/APK success is claimed for this phase.
+- [ ] Private-pilot three-role/five-song/standalone-APK gates and metronome/Hermes/timing/background/route/IEM checks remain separately unchecked.
 
 ### Private non-live pilot readiness baseline · 3 October
 

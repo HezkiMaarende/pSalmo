@@ -65,6 +65,8 @@ unchanged.
       canonical edits leave that service snapshot unchanged.
 - [ ] All tabs, drawer, Android Back, profile greeting, YouTube lazy load and
       fallback, draft saving and both themes pass.
+- [ ] Pengumuman active feed/Home preview, owner lifecycle controls, member
+      read-only boundary, HTTPS handoff and V2 offline cold start pass.
 - [ ] After an explicit online offline-data refresh, airplane-mode cold launch
       shows only cached Home/Jadwal/authorized details with OFFLINE/read-only
       notices. Song Bank, Practice, video and every write remain blocked.

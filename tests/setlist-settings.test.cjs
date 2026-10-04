@@ -64,6 +64,10 @@ test("Setlist settings send one atomic snapshot update, never a canonical song w
           return require("../.test-build/songLabel");
         if (name === "../domain/youtube")
           return require("../.test-build/youtube");
+        if (name === "../domain/announcements")
+          return require("../.test-build/announcements");
+        if (name === "../domain/calendar")
+          return require("../.test-build/calendar");
         throw new Error(name);
       },
     },

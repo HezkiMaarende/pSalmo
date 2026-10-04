@@ -26,6 +26,13 @@ Metronome/runtime/timing/IEM checks are **deferred at the user's request** while
 - [ ] Two editors preview the same revision; one commit succeeds and the second requests a fresh preview. Invalid/foreign songs cannot partially add a batch.
 - [ ] Dirty Back/discard/cancel, keyboard/font scaling, both themes and background/foreground access refresh preserve a memory-only draft. Revoked access prevents confirmation.
 
+## Pengumuman V1
+
+- [ ] Owner/admin creates and edits a draft, verifies dirty Back/discard, publishes, pins/unpins, unpublishes, archives and restores it as a draft. Member and permanent Song Bank editor can read active announcements but cannot expose edit/status actions or mutate them through the API.
+- [ ] Terbit/Draft/Arsip filters, empty/loading/error states, cards, full detail and maximum-three Home preview work with long content, large fonts, keyboard, Android Back and both themes.
+- [ ] Optional HTTPS link opens only after a user tap while online and shows the offline warning without launching another app when offline. Invalid/non-HTTPS links and invalid/past expiry are rejected.
+- [ ] After refreshing offline data, cold-start without network: active announcement content remains readable, drafts/archives remain absent, expiry is rechecked against the current Jakarta day, and legacy V1 cache is cleared/refreshed instead of partially reused.
+
 ## Prepare the metronome pass later
 
 Background-click revision (17 September): rebuild/install the development APK before testing. Start one song, switch tabs/back, open another app and lock for five minutes; clicks should continue. Stop from the global bar and media notification/lock screen; no automatic restart. Test notification-permission denial, rapid Start/Stop/replacement, access revocation on foreground return, sign-out and competing audio. Native device verification is outstanding; swipe-away/force-stop survival is unsupported.
